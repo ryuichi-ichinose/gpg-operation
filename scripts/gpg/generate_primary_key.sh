@@ -23,7 +23,7 @@ gpg --armor --export "$FPR" > "$BACKUP_DIR/public.asc"
 gpg --armor --export-secret-keys "$FPR" > "$BACKUP_DIR/primary_secret.asc"
 
 echo "=> 主鍵のQRコード化..."
-gpg --export-secret-keys "$FPR" | paperkey --secret-key - --output-type raw | base64 | qrencode -o "$BACKUP_DIR/primary-secret-qr.png"
+gpg --export-secret-keys "$FPR" | paperkey --output-type raw | base64 | qrencode -o "$BACKUP_DIR/primary-secret-qr.png"
 
 sync
 echo "=> 主鍵の生成とバックアップ完了。"
