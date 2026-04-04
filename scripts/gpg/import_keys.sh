@@ -1,27 +1,34 @@
 #!/bin/bash
 set -e
 
-: "${GPG_USB_MOUNT:?エラー: GPG_USB_MOUNT が未設定だ。}"
-BACKUP_DIR="${GPG_USB_MOUNT}/gpg_backup"
+: "${GPG_RAMDISK_DIR:?エラー: GPG_RAMDISK_DIR が未設定だ。}"
 
-if [ ! -d "$BACKUP_DIR" ]; then
-    echo "エラー: バックアップディレクトリが見つからない。"
+SOURCE_USB="${1:-}"
+if [ -z "$SOURCE_USB" ] || [ ! -d "$SOURCE_USB" ]; then
+    echo "エラー: インポート元のUSBマウントポイントを引数で指定しろ。"
+    echo "使い方: $0 /mnt/usb_master"
     exit 1
 fi
+
+BACKUP_DIR="${SOURCE_USB}/gpg_backup"
+if [ ! -d "$BACKUP_DIR" ]; then
+    echo "エラー: $BACKUP_DIR が見つからない。"
+    exit 1
+fi
+
+export GNUPGHOME="$GPG_RAMDISK_DIR"
+mkdir -p -m 700 "$GNUPGHOME"
 
 echo "=> 鍵のインポート..."
 gpg --import "$BACKUP_DIR/public.asc"
 
-# 主鍵か副鍵か、存在するものだけインポートする
 if [ -f "$BACKUP_DIR/primary_secret.asc" ]; then
     gpg --import "$BACKUP_DIR/primary_secret.asc"
 fi
-
 if [ -f "$BACKUP_DIR/subkeys_secret.asc" ]; then
     gpg --import "$BACKUP_DIR/subkeys_secret.asc"
 fi
 
-# インポートした鍵をUltimate Trustに設定する
 FPR=$(gpg --list-options show-only-fpr-mbox --list-secret-keys | awk 'NR==1 {print $1}')
 if [ -n "$FPR" ]; then
     echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$FPR" trust
