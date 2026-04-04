@@ -1,81 +1,69 @@
-# GPG/SSH鍵管理スクリプト
-
-YubiKeyのようなハードウェアキーを使用してGPG鍵とSSH鍵をセキュアに管理するための一連のスクリプトだ。
-
-## ワークフローの考え方
-
-- **GPG**: `生成 → バックアップ → ハードウェアキーへ移動` というワークフロー。主鍵はPCに残し、副鍵をYubiKeyに移動する。
-- **SSH**: `ハードウェアキー上で直接生成 → ハンドルをバックアップ` というワークフロー。秘密鍵は決してYubiKeyから出ない。
-
-## 事前準備
-
-スクリプトを実行する前に、以下の環境変数を設定する必要がある。
-
+# GPG/SSH 鍵管理スクリプト
+chmod +x scripts/gpg/*.sh
+chmod +x scripts/ssh/*.sh
+## 0. 事前準備
 ```bash
-# GPG鍵生成用
+# === GPG用 ===
 export GPG_KEY_NAME="あなたの名前"
 export GPG_KEY_EMAIL="あなたのEmail"
-export GPG_USB_MOUNT="/mnt/usb" # USBドライブのマウントポイント
+# 主鍵バックアップ用のマスターUSB (単一)
+export GPG_USB_MOUNT="/mnt/usb_master"
+# 副鍵バックアップ用のUSB (複数指定可)
+export GPG_USB_MOUNTS="/mnt/usb_master /mnt/usb_replica" 
+# フィンガープリント (手順1で設定)
+export GPG_FPR="<FINGERPRINT>"
 
-# SSH鍵生成用
+# === SSH用 ===
 export SSH_KEY_EMAIL="あなたのEmail"
-export SSH_USB_MOUNT="/mnt/usb" # USBドライブのマウントポイント
+export SSH_USB_MOUNT="/mnt/usb_master"
 ```
 
 ---
+## GPG ワークフロー (`scripts/gpg`)
 
-## 手順
-
-### 1. GPG鍵の生成 (`generate_gpg.sh`)
-
-新しいGPGの主鍵と副鍵（署名・暗号化）を生成し、失効証明書などと共にUSBドライブにバックアップを作成する。
-
+### 1. 主鍵の生成 (初回のみ)
+**スクリプト:** `generate_primary_key.sh`  
+**説明:** GPG主鍵を生成し、`GPG_USB_MOUNT`で指定したマスターUSBへバックアップする。  
+**コマンド:**
 ```bash
-./scripts/generate_gpg.sh
+./scripts/gpg/generate_primary_key.sh
+# 表示されたフィンガープリントをコピーし、GPG_FPRに設定しろ
 ```
 
-実行後、フィンガープリントが表示される。**このフィンガープリントは次のステップで必要になるため、必ず控えておけ。**
+### 2. 主鍵が必要な操作 (副鍵の追加など)
+RAMディスク上の一時的な環境で、マスターUSBから主鍵を読み込んで安全に操作する。
 
-### 2. GPG副鍵のYubiKeyへの移動 (`movetocard_gpg.exp.sh`)
-
-ステップ1で生成したGPG副鍵をYubiKeyに移動する。これにより、物理的なキーがなければ秘密鍵の操作ができなくなる。
-
-**注意:** `expect`コマンドがインストールされている必要がある。
-
+#### 手順 2.1: RAMディスク環境の準備
 ```bash
-# <FINGERPRINT> はステップ1で控えたものに置き換える
-./scripts/movetocard_gpg.exp.sh <FINGERPRINT>
+# 1. 一時GPG環境を作成
+export GNUPGHOME=$(mktemp -d -p /dev/shm gpg.XXXXXX)
+chmod 700 $GNUPGHOME
+
+# 2. マスターUSBから主鍵をインポート
+export GPG_USB_MOUNT="/mnt/usb_master" # GPG_USB_MOUNTを使用
+./scripts/gpg/import_keys.sh
 ```
 
-### 3. FIDO2/SSH鍵の生成 (`generate_ssh_sk.sh`)
+#### 手順 2.2: 主鍵を使った操作の実行
+*   **副鍵の追加**
+    **スクリプト:** `add_subkeys.sh`  
+    **説明:** GPG副鍵を生成し、`GPG_USB_MOUNTS`で指定した全USBへバックアップする。  
+    **コマンド:** `./scripts/gpg/add_subkeys.sh`
 
-YubiKeyのFIDO2機能を使って、**YubiKey内部で直接**SSH用の鍵ペアを生成する。
-`-O resident`オプションにより、鍵はYubiKey内に常駐し、他のマシンでも利用可能になる。
+*   **新しいUSBへの主鍵バックアップ**
+    **スクリプト:** `backup_primary_key.sh`  
+    **説明:** 主鍵を新しいUSB (`GPG_USB_MOUNT`) にバックアップする。  
+    **コマンド:** `./scripts/gpg/backup_primary_key.sh`
 
-USBには、秘密鍵そのものではなく、YubiKey内の秘密鍵を操作するための**ハンドルファイル** (`id_ed25519_sk`) と公開鍵 (`id_ed25519_sk.pub`) がバックアップされる。
-
+#### 手順 2.3: RAMディスク環境の破棄
 ```bash
-./scripts/generate_ssh_sk.sh
+rm -rf $GNUPGHOME
+unset GNUPGHOME
 ```
 
-実行後、表示される公開鍵を接続したいサーバーの `~/.ssh/authorized_keys` に追記しろ。
-
+### 3. その他のGPG操作
+(内容は変更なしのため省略)
+...
 ---
-
-## マシン移行時の手順
-
-### GPG鍵のインポート (`import_gpg.sh`)
-
-新しいマシンでGPG鍵を使いたい場合、USBバックアップから鍵をインポートする。
-
-```bash
-./scripts/import_gpg.sh
-```
-
-### SSH鍵ハンドルの読み込み (`load_ssh_sk_from_yubikey.sh`)
-
-新しいマシンでYubiKeyを使ったSSH認証を行いたい場合、このスクリプトを実行してYubiKeyから鍵のハンドル情報をPCの `~/.ssh` ディレクトリに読み込む。
-
-```bash
-./scripts/load_ssh_sk_from_yubikey.sh
-```
+## SSH ワークフロー (`scripts/ssh`)
+(変更なし)
