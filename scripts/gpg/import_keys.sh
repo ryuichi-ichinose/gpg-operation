@@ -17,6 +17,17 @@ if [ ! -d "$BACKUP_DIR" ]; then
 fi
 
 export GNUPGHOME="$GPG_RAMDISK_DIR"
+# === scdaemonの競合回避設定 (pcscdを使用) ===
+# --- 1. Fedora 最適化設定 (GUI対応版) ---
+cat <<EOF > "$GNUPGHOME/scdaemon.conf"
+disable-ccid
+pcsc-shared
+EOF
+cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
+scdaemon-program /usr/libexec/scdaemon
+EOF
+echo "=> Fedora 最適化設定を適用した。"
+
 mkdir -p -m 700 "$GNUPGHOME"
 
 echo "=> 鍵のインポート..."
