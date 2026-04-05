@@ -11,20 +11,20 @@ USB ?= /mnt/usb_master
 # --- Pre-flight Checks ---
 SHELL := /bin/bash
 # Stop if .env file is missing for most targets.
-ALLOWED_WITHOUT_ENV := help setup-permissions
+ALLOWED_WITHOUT_ENV := help setup-permissions install-deps
 IS_ENV_REQUIRED := $(if $(filter $(firstword $(MAKECMDGOALS)),$(ALLOWED_WITHOUT_ENV)),,true)
 
 ifeq ($(IS_ENV_REQUIRED),true)
     ifneq ($(wildcard .env),)
         -include .env
-        export # これが重要。Make変数を環境変数に変える。
+        export
     else
         $(error .env file not found. Please create it first. See README.md)
     endif
 endif
 
 
-.PHONY: all help setup-yubikey setup-permissions generate-primary-key import-keys add-subkeys move-subkeys-to-card cleanup generate-ssh-key backup-primary-key sync-backup
+.PHONY: all help setup-yubikey setup-permissions generate-primary-key import-keys add-subkeys move-subkeys-to-card cleanup generate-ssh-key backup-primary-key sync-backup restore-from-qr
 
 all: help
 
@@ -34,6 +34,7 @@ help:
 	@echo "Examples:"
 	@echo '  make generate-primary-key USB="/run/media/user/My USB"'
 	@echo '  make sync-backup SRC_USB="/mnt/master" DST_USB="/mnt/replica"'
+	@echo '  make restore-from-qr USB="/mnt/new_usb" QR_DATA="Base64String..."'
 	@echo ""
 	@echo "Targets:"
 	@echo "  help                     Show this help message."
@@ -43,14 +44,16 @@ help:
 	@echo "  generate-primary-key     Generate GPG primary key and back it up. Needs 'USB'."
 	@echo "  import-keys              Import keys from master USB to RAM disk. Needs 'USB'."
 	@echo "  add-subkeys              Generate subkeys and back them up. Needs 'USB'."
-	@echo "                           Note: For multiple backup USBs, run the script directly."
 	@echo "  move-subkeys-to-card     Move subkeys to the YubiKey."
 	@echo "  cleanup                  Clean up the RAM disk environment."
+	@echo "  import-keys-to-host      Import keys from master USB to host '.gnupg'. Needs 'USB'."
 	@echo "  ---"
 	@echo "  generate-ssh-key         Generate a new SSH key on the YubiKey. Needs 'USB'."
 	@echo "  ---"
 	@echo "  backup-primary-key       Create a new backup of the primary key. Needs 'USB' (path to new backup)."
 	@echo "  sync-backup              Sync primary USB backup to a replica. Needs 'SRC_USB' and 'DST_USB'."
+	@echo "  extend-key-limit         Extend key limit one year. Needs 'USB'."
+	@echo "  restore-from-qr          Restore primary key from QR code and backup to 'USB'. Optionally set 'QR_DATA'."
 
 # --- Setup ---
 setup-yubikey:
@@ -83,12 +86,16 @@ cleanup:
 	@echo "🧹 Cleaning up RAM disk..."
 	@. .env && ./scripts/gpg/cleanup_ramdisk.sh
 
+import-keys-to-host:
+	@echo "🔐 Importing keys to host(.gnupg) from \"$(USB)\"..."
+	@. .env && ./scripts/gpg/import_public_key_to_host.sh "$(USB)"
+
 # --- SSH Key ---
 generate-ssh-key:
 	@echo "🔑 Generating SSH key on YubiKey, backup to \"$(USB)\"..."
 	@. .env && ./scripts/ssh/generate_ssh_sk.sh "$(USB)"
 
-# --- Maintenance ---
+# --- Maintenance & Recovery ---
 backup-primary-key:
 	@echo "💾 Backing up primary key to \"$(USB)\"..."
 	@. .env && ./scripts/gpg/backup_primary_key.sh "$(USB)"
@@ -100,3 +107,16 @@ sync-backup:
 	fi
 	@echo "🔄 Syncing backup from \"$(SRC_USB)\" to \"$(DST_USB)\"..."
 	@. .env && ./scripts/gpg/safe_usb_sync.sh "$(SRC_USB)/gpg_backup" "$(DST_USB)/gpg_backup"
+
+extend-key-limit:
+	@echo "⏳ Extend GPG keys for 1 year..."
+	@./scripts/gpg/extend_key_limit.sh "$(USB)"
+
+restore-from-qr:
+	@echo "🖨️ Restoring primary key from QR code to \"$(USB)\"..."
+	@. .env && ./scripts/gpg/restore_and_backup.sh "$(USB)" "$(QR_DATA)"
+
+install-deps:
+	@echo "📦 Installing system dependencies for Fedora..."
+	@chmod +x ./install.sh
+	@./install.sh
