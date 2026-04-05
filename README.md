@@ -6,7 +6,45 @@
 ---
 
 ### 0. 事前準備 (最初に一度だけ)
-1.  **環境設定ファイルを作成**
+
+このワークフローを開始する前に、YubiKeyの初期設定を行う。
+
+1.  **YubiKeyのPIN/リトライ回数設定**
+    PINの試行回数を増やしておくと、ロックアウトのリスクを大幅に減らせる。`gpg --card-edit` を使って設定する。
+
+    ```bash
+    gpg --card-edit
+    # gpg/card> admin
+    # Admin commands are allowed
+    # gpg/card> passwd
+    # 1 - change PIN
+    # 2 - unblock PIN
+    # 3 - change Admin PIN
+    # 4 - set token
+    # Q - quit
+    # Your selection? 1
+    # PIN changed.
+    # Your selection? 3
+    # Admin PIN changed.
+    #
+    # gpg/card> login
+    #PINs don't match
+    #
+    # gpg/card> factory-reset
+    #
+    # gpg/card> set-pin-retries 99 99 99
+    #
+    # gpg/card> quit
+    ```
+
+2.  **YubiKeyの鍵属性を設定**
+    このワークフローは `ed25519` 鍵を基本とする。以下のスクリプトを実行し、YubiKeyが `ed25519` 鍵を受け入れられるように設定する。
+
+    ```bash
+    ./scripts/gpg/setup_yubikey.sh
+    ```
+
+3.  **環境設定ファイルを作成**
     リポジトリのルートに `.env` ファイルを以下の内容で作成する。
 
     ```bash
@@ -23,10 +61,10 @@
     export GPG_RAMDISK_DIR="/dev/shm/gpg_workspace"
     ```
 
-2.  **スクリプトに実行権限を付与**
+4.  **スクリプトに実行権限を付与**
 
     ```bash
-    chmod +x scripts/gpg/*.sh scripts/gpg/*.exp.sh scripts/ssh/*.sh
+    chmod +x scripts/gpg/*.sh scripts/ssh/*.sh
     ```
 
 ---
