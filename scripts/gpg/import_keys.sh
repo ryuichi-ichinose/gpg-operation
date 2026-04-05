@@ -17,29 +17,36 @@ if [ ! -d "$BACKUP_DIR" ]; then
 fi
 
 export GNUPGHOME="$GPG_RAMDISK_DIR"
+
+# === 環境の構築 ===
+# ファイルを書き込む前に、必ずディレクトリを生成（存在しない場合のみ作成される）
+mkdir -p -m 700 "$GNUPGHOME"
+
 # === scdaemonの競合回避設定 (pcscdを使用) ===
 # --- 1. Fedora 最適化設定 (GUI対応版) ---
 cat <<EOF > "$GNUPGHOME/scdaemon.conf"
 disable-ccid
 pcsc-shared
 EOF
+
 cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
 scdaemon-program /usr/libexec/scdaemon
 EOF
 echo "=> Fedora 最適化設定を適用した。"
 
-mkdir -p -m 700 "$GNUPGHOME"
-
+# === 鍵のインポート ===
 echo "=> 鍵のインポート..."
 gpg --import "$BACKUP_DIR/public.asc"
 
 if [ -f "$BACKUP_DIR/primary_secret.asc" ]; then
     gpg --import "$BACKUP_DIR/primary_secret.asc"
 fi
+
 if [ -f "$BACKUP_DIR/subkeys_secret.asc" ]; then
     gpg --import "$BACKUP_DIR/subkeys_secret.asc"
 fi
 
+# === 信用度の設定 ===
 FPR=$(gpg --list-options show-only-fpr-mbox --list-secret-keys | awk 'NR==1 {print $1}')
 if [ -n "$FPR" ]; then
     echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$FPR" trust
