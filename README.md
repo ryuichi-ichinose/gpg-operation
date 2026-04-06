@@ -9,11 +9,11 @@ export SSH_KEY_EMAIL="your mail address"
 鍵の生成 (Primary & Subkeys)
 Bash
 # 1. プライマリーキー生成
-make generate-primary-key USB="/run/media/ichinose/STORE N GO"
+make generate-primary-key USB="your/usb/path"
 # ※ 画面の FPR を .env の GPG_FPR に追記
 
 # 2. 副鍵生成
-make add-subkeys USB="/run/media/ichinose/STORE N GO"
+make add-subkeys USB="your/usb/path"
 
 # 3. 作業環境削除
 make cleanup
@@ -25,7 +25,7 @@ make setup-yubikey
 副鍵をハードウェアに流し込む
 Bash
 # 1. キーをRAMへインポート
-make import-keys USB="/run/media/ichinose/STORE N GO"
+make import-keys USB="your/usb/path"
 
 # 2. 副鍵をYubiKeyへ移動 (※不可逆操作)
 make move-subkeys-to-card
@@ -35,7 +35,7 @@ make cleanup
 ホスト PC への反映 & 公開鍵配置
 Bash
 # 1. ホストに公開鍵とスタブをインポート
-make import-keys-to-host USB="/run/media/ichinose/STORE N GO"
+make import-keys-to-host USB="your/usb/path"
 
 # 2. クリーンアップ
 make cleanup
@@ -46,16 +46,16 @@ gpg --armor --export $GPG_FPR | xclip -sel clip
 有効期限の更新
 Bash
 # 1. RAMへインポート
-make import-keys USB="/run/media/ichinose/STORE N GO"
+make import-keys USB="your/usb/path"
 
 # 2. 期限更新 (1y延長)
-make renew-keys USB="/run/media/ichinose/STORE N GO"
+make renew-keys USB="your/usb/path"
 
 # 3. 作業環境削除
 make cleanup
 
 # 4. 新しい公開鍵をホストに反映
-make import-keys-to-host USB="/run/media/ichinose/STORE N GO"
+make import-keys-to-host USB="your/usb/path"
 
 # 5. 公開鍵を再配置 (GitHub / Keyserver)
 # ※ 2-3 のコマンドでコピーして再アップロード
@@ -63,7 +63,7 @@ make import-keys-to-host USB="/run/media/ichinose/STORE N GO"
 マスター USB の同期
 Bash
 # マスターから複製用USBへ同期
-make sync-backup SRC_USB="/run/media/ichinose/STORE N GO" DST_USB="/run/media/ichinose/KIOXIA"
+make sync-backup SRC_USB="your/usb/path" DST_USB="/run/media/ichinose/KIOXIA"
 🆘 5. 究極の復旧 (QRコード)
 紙媒体からのマスター鍵復活
 Bash
@@ -74,7 +74,7 @@ make restore-from-qr USB="/run/media/ichinose/NEW_USB" QR_DATA="<読み取った
 SSH 鍵の生成と反映
 Bash
 # 1. YubiKey内で生成 & USBへバックアップ
-make generate-ssh-key USB="/run/media/ichinose/STORE N GO"
+make generate-ssh-key USB="your/usb/path"
 
 # 2. 新しいPC環境の .ssh ディレクトリに反映
 ssh-keygen -K
