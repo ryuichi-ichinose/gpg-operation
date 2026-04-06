@@ -51,7 +51,6 @@ help:
 	@echo "  generate-ssh-key         Generate a new SSH key on the YubiKey. Needs 'USB'."
 	@echo "  ---"
 	@echo "  backup-primary-key       Create a new backup of the primary key. Needs 'USB' (path to new backup)."
-	@echo "  sync-backup              Sync primary USB backup to a replica. Needs 'SRC_USB' and 'DST_USB'."
 	@echo "  extend-key-limit         Extend key limit one year. Needs 'USB'."
 	@echo "  restore-from-qr          Restore primary key from QR code and backup to 'USB'. Optionally set 'QR_DATA'."
 
@@ -99,14 +98,6 @@ generate-ssh-key:
 backup-primary-key:
 	@echo "💾 Backing up primary key to \"$(USB)\"..."
 	@. .env && ./scripts/gpg/backup_primary_key.sh "$(USB)"
-
-sync-backup:
-	@if [ -z "$(SRC_USB)" ] || [ -z "$(DST_USB)" ]; then \
-		echo "Usage: make sync-backup SRC_USB=<path_to_master> DST_USB=<path_to_replica>"; \
-		exit 1; \
-	fi
-	@echo "🔄 Syncing backup from \"$(SRC_USB)\" to \"$(DST_USB)\"..."
-	@. .env && ./scripts/gpg/safe_usb_sync.sh "$(SRC_USB)/gpg_backup" "$(DST_USB)/gpg_backup"
 
 extend-key-limit:
 	@echo "⏳ Extend GPG keys for 1 year..."

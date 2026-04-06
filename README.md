@@ -144,17 +144,7 @@ make setup-yubikey
 
 ---
 
-## 💾 4. USB 冗長化 (バックアップ)
-
-- マスターキーのバックアップUSBを複数作成します。
-
-```bash
-make sync-backup SRC_USB="your/usb/path" DST_USB="your/second_usb/path"
-```
-
----
-
-## 🆘 5. 究極の復旧 (QRコード)
+## 💾 4. 究極の復旧 (QRコード)
 
 - 物理的な紙のバックアップから主鍵を復元します。
 
@@ -169,9 +159,9 @@ make sync-backup SRC_USB="your/usb/path" DST_USB="your/second_usb/path"
 
 ---
 
-## 🚀 6. SSH (FIDO2) 管理
+## 🚀 5. SSH (FIDO2) 管理
 
-### 6.1. SSHキーの生成と利用
+### 5.1. SSHキーの生成と利用
 
 1.  **YubiKey内でSSHキーを生成**
     - FIDO2/U2F (sk) タイプのSSHキーを生成し、バックアップUSBに秘密鍵ハンドルを保存します。
@@ -188,7 +178,7 @@ make sync-backup SRC_USB="your/usb/path" DST_USB="your/second_usb/path"
     ```
 ---
 
-## 🔄 7. YubiKeyの切り替え
+## 🔄 6. YubiKeyの切り替え
 
 PCに登録されているGPGキーの参照先を、新しいYubiKeyに切り替える際の手順です。
 
