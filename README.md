@@ -38,6 +38,7 @@ export GPG_RAMDISK_DIR="/dev/shm/gpg_workspace"
 
 2.  **副鍵 (Subkeys) の生成**
     - `sign`, `encrypt`, `authenticate` 権限を持つ日常利用のキーです。
+    - **有効期限は1年**に設定されます。
 
     ```bash
     make add-subkeys USB="your/usb/path"
