@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+: "${GPG_FPR:?エラー: GPG_FPR が未設定だ。}"
+
 # 第一引数からターゲットUSBを取得
 TARGET_USB="${1:-}"
 
@@ -22,11 +24,8 @@ echo "=> メイン環境に公開鍵をインポート中..."
 # ここでは GNUPGHOME を指定せず、デフォルトの ~/.gnupg に入れる
 gpg --import "$PUBKEY_FILE"
 
-# フィンガープリントを抽出
-FPR=$(gpg --with-colons --import-options show-only --import "$PUBKEY_FILE" | awk -F: '$1=="fpr"{print $10;exit}')
-
 echo "=> 鍵の信用度(Trust)を Ultimate に設定中..."
-echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$FPR" trust
+echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$GPG_FPR" trust
 
 echo "=> YubiKey との紐付けを確立中..."
 # これを叩くことで、GPGが「この公開鍵の秘密鍵はカード内にある」と認識（スタブ化）する

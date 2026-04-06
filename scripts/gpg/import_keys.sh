@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+: "${GPG_FPR:?エラー: GPG_FPR が未設定だ。}"
 : "${GPG_RAMDISK_DIR:?エラー: GPG_RAMDISK_DIR が未設定だ。}"
 
 SOURCE_USB="${1:-}"
@@ -47,10 +48,7 @@ if [ -f "$BACKUP_DIR/subkeys_secret.asc" ]; then
 fi
 
 # === 信用度の設定 ===
-FPR=$(gpg --list-options show-only-fpr-mbox --list-secret-keys | awk 'NR==1 {print $1}')
-if [ -n "$FPR" ]; then
-    echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$FPR" trust
-    echo "=> 鍵のTrustレベルをUltimateに設定した。"
-fi
+echo "=> 鍵のTrustレベルをUltimateに設定..."
+echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$GPG_FPR" trust
 
 echo "=> インポート完了。"
