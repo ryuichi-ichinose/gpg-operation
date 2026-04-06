@@ -18,49 +18,33 @@ echo "=> マスター鍵をインポート中..."
 gpg --import "$BACKUP_DIR/primary_secret.asc"
 gpg --import "$BACKUP_DIR/subkeys_secret.asc"
 
-echo "=> 有効期限を 1年(1y) 延長します..."
-echo "※ GUIでマスター鍵のパスワードを求められるぞ。"
+# 2. ユーザーへのガイド
+echo "------------------------------------------------------------------"
+echo "===> GPGキーの有効期限を更新します <==="
+echo "------------------------------------------------------------------"
+echo "これから対話的な GPG プロンプトを開始します。"
+echo "以下の手順に従って、各キーの有効期限を更新してください。"
+echo ""
+echo "  1. gpg> プロンプトで 'list' と入力してキーの一覧を確認します。"
+echo "  2. 主鍵を更新するには、そのまま 'expire' と入力します。"
+echo "     - 有効期限 ('1y' など) を入力し、確認 ('y') します。"
+echo "  3. 副鍵を更新するには、'key <N>' でキーを選択します（例: 'key 1'）。"
+echo "     - アスタリスク (*) が選択したキーの横に移動したことを確認します。"
+echo "     - 'expire' と入力し、同様に有効期限を設定します。"
+echo "  4. **すべてのキー** に対してこのプロセスを繰り返します。"
+echo "  5. 最後に 'save' と入力して変更を保存し、プロンプトを終了します。"
+echo "------------------------------------------------------------------"
+echo "現在のキーの状態:"
+gpg --list-keys "$GPG_FPR"
+echo "------------------------------------------------------------------"
+read -p "準備ができたら Enter を押して GPG プロンプトを開始します..."
 
-# 2. Expectによる自動更新
-# 主鍵(0)、副鍵1(key 1)、副鍵2(key 2)を順番に expire コマンドで更新する
-expect <<EOF
-set timeout -1
-spawn gpg --edit-key $GPG_FPR
+# 3. 対話的セッションの開始
+# --tty オプションで現在のターミナルを明示的に指定する
+gpg --tty `tty` --edit-key "$GPG_FPR"
 
-expect "gpg>"
-# --- 主鍵の期限更新 ---
-send "expire\r"
-expect "Key is valid for?"
-send "1y\r"
-expect "Is this correct? (y/N)"
-send "y\r"
 
-# --- 副鍵1の期限更新 ---
-expect "gpg>"
-send "key 1\r"
-expect "gpg>"
-send "expire\r"
-expect "Key is valid for?"
-send "1y\r"
-expect "Is this correct? (y/N)"
-send "y\r"
-
-# --- 副鍵2の期限更新 ---
-expect "gpg>"
-send "key 2\r"
-expect "gpg>"
-send "expire\r"
-expect "Key is valid for?"
-send "1y\r"
-expect "Is this correct? (y/N)"
-send "y\r"
-
-expect "gpg>"
-send "save\r"
-expect eof
-EOF
-
-# 3. 更新された鍵をUSBに書き戻す
+# 4. 更新された鍵をUSBに書き戻す
 echo "=> 更新された鍵を USB に上書きエクスポート中..."
 gpg --armor --export "$GPG_FPR" > "$BACKUP_DIR/public.asc"
 gpg --armor --export-secret-keys "$GPG_FPR" > "$BACKUP_DIR/primary_secret.asc"
