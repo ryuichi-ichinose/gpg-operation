@@ -123,7 +123,7 @@ make setup-yubikey
 2.  **有効期限の延長 (1年間)**
 
     ```bash
-    make renew-keys USB="your/usb/path"
+    make extend-key-limit USB="your/usb/path"
     ```
 
 3.  **作業環境のクリーンアップ**
