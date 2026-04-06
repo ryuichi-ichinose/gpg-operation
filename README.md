@@ -121,7 +121,9 @@ make setup-yubikey
     make import-keys USB="your/usb/path"
     ```
 
-2.  **有効期限の延長 (1年間)**
+2.  **有効期限の延長 (ガイド付き対話モード)**
+    - 対話的なGPGプロンプトが起動します。
+    - 画面に表示される指示に従い、各キー（主鍵と副鍵）の有効期限を個別に設定してください。
 
     ```bash
     make extend-key-limit USB="your/usb/path"
