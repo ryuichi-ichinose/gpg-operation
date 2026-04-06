@@ -148,7 +148,7 @@ make setup-yubikey
 - マスターキーのバックアップUSBを複数作成します。
 
 ```bash
-make sync-backup SRC_USB="your/usb/path" DST_USB="your/second_usb/path
+make sync-backup SRC_USB="your/usb/path" DST_USB="your/second_usb/path"
 ```
 
 ---
@@ -185,3 +185,29 @@ make sync-backup SRC_USB="your/usb/path" DST_USB="your/second_usb/path
     ```bash
     ssh-keygen -K
     ```
+---
+
+## 🔄 7. YubiKeyの切り替え
+
+PCに登録されているGPGキーの参照先を、新しいYubiKeyに切り替える際の手順です。
+
+1.  **古いYubiKeyのスタブ（参照情報）を削除**
+    - `~/.gnupg/private-keys-v1.d/`にある`.key`ファイルは、秘密鍵そのものではなく「秘密鍵がどのYubiKeyにあるか」という情報を持っています。これを削除します。
+    > **Note:** 秘密鍵の実体はYubiKeyやバックアップUSBにあるため、この操作は安全です。
+
+    ```bash
+    rm ~/.gnupg/private-keys-v1.d/*.key
+    ```
+
+2.  **GPGデーモンの再起動と新しいYubiKeyの認識**
+    - 新しいYubiKeyをPCに接続した状態で、GPGのプロセスを再起動します。
+
+    ```bash
+    gpgconf --kill all
+    ```
+    - `gpg --card-status` を実行して、新しいYubiKeyが正しく認識されていることを確認します。
+
+    ```bash
+    gpg --card-status
+    ```
+    これで、GPGは新しいYubiKeyを秘密鍵の場所として認識するようになります。
