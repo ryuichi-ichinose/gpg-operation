@@ -1,80 +1,187 @@
-.envの例
+# GPG & YubiKey Operation Guide
+
+このリポジトリは、GPGキーの生成、管理、そしてYubiKeyへの移行を自動化するためのスクリプト群です。
+
+## 0. 前提条件：環境変数の設定
+
+最初に、プロジェクトのルートに`.env`ファイルを作成し、以下の変数を設定してください。
+
+```bash
+# .envファイル の例
+
+# GPGキーの基本情報
 export GPG_KEY_NAME="your name"
 export GPG_KEY_EMAIL="your mail address"
-export GPG_RAMDISK_DIR="/dev/shm/gpg_workspace"
+# ※ 主鍵生成後に表示されるフィンガープリントを設定
 export GPG_FPR=""
+
+# SSHキーの情報
 export SSH_KEY_EMAIL="your mail address"
 
-🛠️ 1. 初期セットアップ (初回のみ)
-鍵の生成 (Primary & Subkeys)
-Bash
-# 1. プライマリーキー生成
-make generate-primary-key USB="your/usb/path"
-# ※ 画面の FPR を .env の GPG_FPR に追記
+# 一時作業ディレクトリ（RAMディスクを推奨）
+export GPG_RAMDISK_DIR="/dev/shm/gpg_workspace"
+```
 
-# 2. 副鍵生成
-make add-subkeys USB="your/usb/path"
+---
 
-# 3. 作業環境削除
-make cleanup
-YubiKey デバイス初期化
-Bash
-# YubiKeyをed25519モードに設定
+## 🛠️ 1. 初期セットアップ (初回のみ)
+
+### 1.1. GPGキーペアの生成 (主鍵 + 副鍵)
+
+1.  **主鍵 (Primary Key) の生成**
+    - `certify`権限のみを持つマスターキーです。
+
+    ```bash
+    make generate-primary-key USB="your/usb/path"
+    ```
+    > **重要:** このコマンド実行後、画面に表示される **フィンガープリント (FPR)** をコピーし、`.env`ファイルの`GPG_FPR`に設定してください。
+
+2.  **副鍵 (Subkeys) の生成**
+    - `sign`, `encrypt`, `authenticate` 権限を持つ日常利用のキーです。
+
+    ```bash
+    make add-subkeys USB="your/usb/path"
+    ```
+
+3.  **作業環境のクリーンアップ**
+    - RAMディスク上の一時ファイルを削除します。
+
+    ```bash
+    make cleanup
+    ```
+
+### 1.2. YubiKey の初期化
+
+- YubiKeyの鍵スロットを、GPGで推奨される`ed25519`および`cv25519` (Curve25519) に設定します。
+
+```bash
 make setup-yubikey
-🔑 2. YubiKey への移行
-副鍵をハードウェアに流し込む
-Bash
-# 1. キーをRAMへインポート
-make import-keys USB="your/usb/path"
+```
 
-# 2. 副鍵をYubiKeyへ移動 (※不可逆操作)
-make move-subkeys-to-card
+---
 
-# 3. 作業環境削除
-make cleanup
-ホスト PC への反映 & 公開鍵配置
-Bash
-# 1. ホストに公開鍵とスタブをインポート
-make import-keys-to-host USB="your/usb/path"
+## 🔑 2. YubiKey への移行
 
-# 2. クリーンアップ
-make cleanup
+### 2.1. 副鍵のYubiKeyへの移動
 
-# 3. 公開鍵をクリップボードにコピー (GitHub / keys.openpgp.org 用)
-gpg --armor --export $GPG_FPR | xclip -sel clip
-🔄 3. 定期メンテナンス (1年周期)
-有効期限の更新
-Bash
-# 1. RAMへインポート
-make import-keys USB="your/usb/path"
+1.  **GPGキーのインポート**
+    - バックアップUSBから作業用のRAMディスクへキーを読み込みます。
 
-# 2. 期限更新 (1y延長)
-make renew-keys USB="your/usb/path"
+    ```bash
+    make import-keys USB="your/usb/path"
+    ```
 
-# 3. 作業環境削除
-make cleanup
+2.  **副鍵をYubiKeyへ移動**
+    > **警告:** この操作は **不可逆** です。一度移動した副鍵はYubiKeyから取り出せません。
 
-# 4. 新しい公開鍵をホストに反映
-make import-keys-to-host USB="your/usb/path"
+    ```bash
+    make move-subkeys-to-card
+    ```
 
-# 5. 公開鍵を再配置 (GitHub / Keyserver)
-# ※ 2-3 のコマンドでコピーして再アップロード
-💾 4. USB 冗長化 (バックアップ)
-マスター USB の同期
-Bash
-# マスターから複製用USBへ同期
-make sync-backup SRC_USB="your/usb/path" DST_USB="/run/media/ichinose/KIOXIA"
-🆘 5. 究極の復旧 (QRコード)
-紙媒体からのマスター鍵復活
-Bash
-# 1. zbar 等でQRを読み込み、結果の文字列をコピー
-# 2. 公開鍵が import された状態で実行
-make restore-from-qr USB="/run/media/ichinose/NEW_USB" QR_DATA="<読み取った文字列>"
-🚀 6. SSH (FIDO2) 管理
-SSH 鍵の生成と反映
-Bash
-# 1. YubiKey内で生成 & USBへバックアップ
-make generate-ssh-key USB="your/usb/path"
+3.  **作業環境のクリーンアップ**
 
-# 2. 新しいPC環境の .ssh ディレクトリに反映
-ssh-keygen -K
+    ```bash
+    make cleanup
+    ```
+
+### 2.2. ホストPCへの公開鍵設定
+
+- YubiKeyに紐付けられたGPGキーを、日常的に使用するPCに設定します。
+
+1.  **公開鍵とスタブのインポート**
+    - これにより、PCは「秘密鍵がYubiKeyにある」ことを認識します。
+
+    ```bash
+    make import-keys-to-host USB="your/usb/path"
+    ```
+
+2.  **作業環境のクリーンアップ**
+
+    ```bash
+    make cleanup
+    ```
+
+3.  **公開鍵のエクスポート**
+    - GitHubやKey Serverに登録するために、公開鍵をクリップボードにコピーします。
+
+    ```bash
+    gpg --armor --export $GPG_FPR | xclip -sel clip
+    ```
+
+---
+
+## 🔄 3. 定期メンテナンス (1年周期)
+
+### 3.1. 有効期限の更新
+
+1.  **GPGキーのインポート**
+
+    ```bash
+    make import-keys USB="your/usb/path"
+    ```
+
+2.  **有効期限の延長 (1年間)**
+
+    ```bash
+    make extend-key-limit USB="your/usb/path"
+    ```
+
+3.  **作業環境のクリーンアップ**
+
+    ```bash
+    make cleanup
+    ```
+
+4.  **新しい公開鍵をホストに反映**
+
+    ```bash
+    make import-keys-to-host USB="your/usb/path"
+    ```
+
+5.  **公開鍵の再配布**
+    - GitHubやKey Serverに、更新された新しい公開鍵を再度アップロードしてください。
+
+---
+
+## 💾 4. USB 冗長化 (バックアップ)
+
+- マスターキーのバックアップUSBを複数作成します。
+
+```bash
+make sync-backup SRC_USB="your/usb/path" DST_USB="your/second_usb/path
+```
+
+---
+
+## 🆘 5. 究極の復旧 (QRコード)
+
+- 物理的な紙のバックアップから主鍵を復元します。
+
+1.  **QRコードの読み取り**
+    - `zbar`などのツールでQRコードを読み取り、base64エンコードされた文字列を取得します。
+
+2.  **キーの復元**
+
+    ```bash
+    make restore-from-qr USB="/run/media/ichinose/NEW_USB" QR_DATA="<読み取った文字列>"
+    ```
+
+---
+
+## 🚀 6. SSH (FIDO2) 管理
+
+### 6.1. SSHキーの生成と利用
+
+1.  **YubiKey内でSSHキーを生成**
+    - FIDO2/U2F (sk) タイプのSSHキーを生成し、バックアップUSBに秘密鍵ハンドルを保存します。
+
+    ```bash
+    make generate-ssh-key USB="your/usb/path"
+    ```
+
+2.  **新しいPCでSSHキーを利用**
+    - 別のPCでこのSSHキーを使いたい場合、バックアップUSBからキーハンドルを読み込みます。
+
+    ```bash
+    ssh-keygen -K
+    ```
