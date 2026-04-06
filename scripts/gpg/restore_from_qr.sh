@@ -2,6 +2,7 @@
 set -e
 
 # 環境変数のチェック
+: "${GPG_FPR:?エラー: GPG_FPR が未設定だ。}"
 : "${GPG_RAMDISK_DIR:?エラー: GPG_RAMDISK_DIR が未設定だ。}"
 
 # 引数チェック
@@ -50,26 +51,21 @@ paperkey --pubring "$GNUPGHOME/public.gpg" \
 echo "=> 復元された秘密鍵をインポート..."
 gpg --import "$GNUPGHOME/restored_private.gpg"
 
-# 指紋の取得
-FPR=$(gpg --list-options show-only-fpr-mbox --list-secret-keys | awk 'NR==1 {print $1}')
+# TrustレベルをUltimateに
+echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$GPG_FPR" trust
 
-if [ -n "$FPR" ]; then
-    # TrustレベルをUltimateに
-    echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$FPR" trust
-    
-    # === USBへの書き戻しセクション ===
-    echo "=> 復元した主鍵をUSBへバックアップ ($BACKUP_DIR/primary_secret.asc)..."
-    
-    # 既存ファイルがある場合はバックアップを作成
-    if [ -f "$BACKUP_DIR/primary_secret.asc" ]; then
-        mv "$BACKUP_DIR/primary_secret.asc" "$BACKUP_DIR/primary_secret.asc.bak"
-    fi
-    
-    # 秘密鍵をASCII Armor形式でエクスポート
-    gpg --export-secret-keys --armor "$FPR" > "$BACKUP_DIR/primary_secret.asc"
-    
-    echo "=> USBへの書き戻しが完了した。"
+# === USBへの書き戻しセクション ===
+echo "=> 復元した主鍵をUSBへバックアップ ($BACKUP_DIR/primary_secret.asc)..."
+
+# 既存ファイルがある場合はバックアップを作成
+if [ -f "$BACKUP_DIR/primary_secret.asc" ]; then
+    mv "$BACKUP_DIR/primary_secret.asc" "$BACKUP_DIR/primary_secret.asc.bak"
 fi
+
+# 秘密鍵をASCII Armor形式でエクスポート
+gpg --export-secret-keys --armor "$GPG_FPR" > "$BACKUP_DIR/primary_secret.asc"
+
+echo "=> USBへの書き戻しが完了した。"
 
 # 一時バイナリの抹消
 shred -u "$GNUPGHOME/public.gpg" "$GNUPGHOME/secret_fragment.bin" "$GNUPGHOME/restored_private.gpg"
