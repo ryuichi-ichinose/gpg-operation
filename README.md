@@ -2,8 +2,9 @@
 
 このリポジトリは、GPGキーの生成、管理、そしてYubiKeyへの移行を自動化するためのスクリプト群です。
 
-## 0. 前提条件：環境変数の設定
+## 0. 前提条件
 
+### 0.1. 環境変数の設定
 最初に、プロジェクトのルートに`.env`ファイルを作成し、以下の変数を設定してください。
 
 ```bash
@@ -22,9 +23,23 @@ export SSH_KEY_EMAIL="your mail address"
 export GPG_RAMDISK_DIR="/dev/shm/gpg_workspace"
 ```
 
+### 0.2. OSに関する注意
+このツールのスクリプトは **Fedora Linux** をベースに開発・テストされています。
+特に、GPGデーモン(`scdaemon`)の設定がFedoraのパス (`/usr/libexec/scdaemon`) に依存しています。
+
+Debian, Ubuntu, Arch Linuxなどの他のディストリビューションで使用する場合は、スクリプト内の以下の部分を環境に合わせて修正する必要があります。
+```bash
+# e.g., scripts/gpg/import_keys.sh
+
+# TODO: 以下の設定はFedora系に特化している...
+cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
+scdaemon-program /usr/libexec/scdaemon # <- このパスを修正
+EOF
+```
+
 ---
 
-## 🛠️ 1. 初期セットアップ (初回のみ)
+## 1. 🛠️ 初期セットアップ (初回のみ)
 
 ### 1.1. GPGキーペアの生成 (主鍵 + 副鍵)
 
@@ -61,7 +76,7 @@ make setup-yubikey
 
 ---
 
-## 🔑 2. YubiKey への移行
+## 2. 🔑 YubiKey への移行
 
 ### 2.1. 副鍵のYubiKeyへの移動
 
@@ -111,7 +126,7 @@ make setup-yubikey
 
 ---
 
-## 🔄 3. 定期メンテナンス (1年周期)
+## 3. 🔄 定期メンテナンス (1年周期)
 
 ### 3.1. 有効期限の更新
 
@@ -146,7 +161,7 @@ make setup-yubikey
 
 ---
 
-## 💾 4. 究極の復旧 (QRコード)
+## 4. 🆘 究極の復旧 (QRコード)
 
 - 物理的な紙のバックアップから主鍵を復元します。
 
@@ -161,7 +176,7 @@ make setup-yubikey
 
 ---
 
-## 🚀 5. SSH (FIDO2) 管理
+## 5. 🚀 SSH (FIDO2) 管理
 
 ### 5.1. SSHキーの生成と利用
 
@@ -180,7 +195,7 @@ make setup-yubikey
     ```
 ---
 
-## 🔄 6. YubiKeyの切り替え
+## 6. 🔄 YubiKeyの切り替え
 
 PCに登録されているGPGキーの参照先を、新しいYubiKeyに切り替える際の手順です。
 

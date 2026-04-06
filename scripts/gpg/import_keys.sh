@@ -23,6 +23,9 @@ export GNUPGHOME="$GPG_RAMDISK_DIR"
 # ファイルを書き込む前に、必ずディレクトリを生成（存在しない場合のみ作成される）
 mkdir -p -m 700 "$GNUPGHOME"
 
+# TODO: 以下の設定はFedora系に特化している。他のディストリビューション
+# (Debian/Ubuntuなど)では `scdaemon-program` のパスが異なる可能性があるため、
+# 環境に応じた修正が必要。
 # === scdaemonの競合回避設定 (pcscdを使用) ===
 # --- 1. Fedora 最適化設定 (GUI対応版) ---
 cat <<EOF > "$GNUPGHOME/scdaemon.conf"

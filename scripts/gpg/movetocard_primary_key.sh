@@ -8,6 +8,9 @@ set -e
 export GNUPGHOME="$GPG_RAMDISK_DIR"
 mkdir -p -m 700 "$GNUPGHOME"
 
+# TODO: 以下の設定はFedora系に特化している。他のディストリビューション
+# (Debian/Ubuntuなど)では `scdaemon-program` のパスが異なる可能性があるため、
+# 環境に応じた修正が必要。
 # --- 1. Fedora 最適化設定 (GUI対応版) ---
 cat <<EOF > "$GNUPGHOME/scdaemon.conf"
 disable-ccid
