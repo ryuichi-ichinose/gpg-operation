@@ -1,74 +1,74 @@
 # GPG & YubiKey Operation Guide
 
-このリポジトリは、GPGキーの生成、管理、そしてYubiKeyへの移行を自動化するためのスクリプト群です。
+This repository provides a set of scripts to automate the generation, management, and migration of GPG keys to a YubiKey.
 
-## 0. 前提条件
+## 0. Prerequisites
 
-### 0.1. 環境変数の設定
-最初に、プロジェクトのルートに`.env`ファイルを作成し、以下の変数を設定してください。
+### 0.1. Environment Variables
+First, create a `.env` file in the project root and set the following variables.
 
 ```bash
-# .envファイル の例
+# Example .env file
 
-# GPGキーの基本情報
+# Basic GPG Key Information
 export GPG_KEY_NAME="your name"
-export GPG_KEY_EMAIL="your mail address"
-# ※ 主鍵生成後に表示されるフィンガープリントを設定
+export GPG_KEY_EMAIL="your email address"
+# Set this to the fingerprint displayed after primary key generation
 export GPG_FPR=""
 
-# SSHキーの情報
-export SSH_KEY_EMAIL="your mail address"
+# SSH Key Information
+export SSH_KEY_EMAIL="your email address"
 
-# 一時作業ディレクトリ（RAMディスクを推奨）
+# Temporary working directory (RAM disk is recommended)
 export GPG_RAMDISK_DIR="/dev/shm/gpg_workspace"
 ```
 
-### 0.2. OSに関する注意
-このツールのスクリプトは **Fedora Linux** をベースに開発・テストされています。
-特に、GPGデーモン(`scdaemon`)の設定がFedoraのパス (`/usr/libexec/scdaemon`) に依存しています。
+### 0.2. OS-Specific Notes
+The scripts in this tool have been developed and tested on **Fedora Linux**.
+Specifically, the GPG daemon (`scdaemon`) configuration depends on the Fedora path (`/usr/libexec/scdaemon`).
 
-Debian, Ubuntu, Arch Linuxなどの他のディストリビューションで使用する場合は、スクリプト内の以下の部分を環境に合わせて修正する必要があります。
+If you are using another distribution such as Debian, Ubuntu, or Arch Linux, you will need to modify the following part of the scripts to match your environment.
 ```bash
-# e.g., scripts/gpg/import_keys.sh
+# e.g., in scripts/gpg/import_keys.sh
 
-# TODO: 以下の設定はFedora系に特化している...
+# TODO: The following configuration is specific to Fedora...
 cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
-scdaemon-program /usr/libexec/scdaemon # <- このパスを修正
+scdaemon-program /usr/libexec/scdaemon # <- Modify this path
 EOF
 ```
 
 ---
 
-## 1. 🛠️ 初期セットアップ (初回のみ)
+## 1. Initial Setup (First Time Only)
 
-### 1.1. GPGキーペアの生成 (主鍵 + 副鍵)
+### 1.1. Generate GPG Key Pair (Primary Key + Subkeys)
 
-1.  **主鍵 (Primary Key) の生成**
-    - `certify`権限のみを持つマスターキーです。
-
-    ```bash
-    make generate-primary-key USB="your/usb/path"
-    ```
-    > **重要:** このコマンド実行後、画面に表示される **フィンガープリント (FPR)** をコピーし、`.env`ファイルの`GPG_FPR`に設定してください。
-
-2.  **副鍵 (Subkeys) の生成**
-    - `sign`, `encrypt`, `authenticate` 権限を持つ日常利用のキーです。
-    - **有効期限は1年**に設定されます。
+1.  **Generate Primary Key**
+    - This is the master key, holding only the `certify` capability.
 
     ```bash
-    make add-subkeys USB="your/usb/path"
+    make generate-primary-key USB="/path/to/your/usb"
+    ```
+    > **Important:** After this command, copy the **fingerprint (FPR)** displayed on the screen and set it as the value for `GPG_FPR` in your `.env` file.
+
+2.  **Generate Subkeys**
+    - These are the daily-use keys with `sign`, `encrypt`, and `authenticate` capabilities.
+    - The **expiration is set to 1 year**.
+
+    ```bash
+    make add-subkeys USB="/path/to/your/usb"
     ```
 
-3.  **作業環境のクリーンアップ**
-    - RAMディスク上の一時ファイルを削除します。
+3.  **Cleanup Working Directory**
+    - Deletes temporary files from the RAM disk.
 
     ```bash
     make cleanup
     ```
 
-### 1.2. YubiKey の初期化
+### 1.2. Initialize YubiKey
 
-- YubiKeyの鍵スロットを、GPGで推奨される`ed25519`および`cv25519` (Curve25519) に設定します。
+- Sets the YubiKey's key slots to use `ed25519` and `cv25519` (Curve25519), which are recommended for GPG.
 
 ```bash
 make setup-yubikey
@@ -76,49 +76,51 @@ make setup-yubikey
 
 ---
 
-## 2. 🔑 YubiKey への移行
+## 2. YubiKey Migration
 
-### 2.1. 副鍵のYubiKeyへの移動
+### 2.1. Move Subkeys to YubiKey
 
-1.  **GPGキーのインポート**
-    - バックアップUSBから作業用のRAMディスクへキーを読み込みます。
+1.  **Import GPG Keys**
+    - Loads keys from the backup USB into the temporary RAM disk.
 
     ```bash
-    make import-keys USB="your/usb/path"
+    make import-keys USB="/path/to/your/usb"
     ```
 
-2.  **副鍵をYubiKeyへ移動**
-    > **警告:** この操作は **不可逆** です。一度移動した副鍵はYubiKeyから取り出せません。
+2.  **Move Subkeys to YubiKey**
+    > **Warning:** This operation is **irreversible**. Once subkeys are moved to the YubiKey, they cannot be extracted.
 
     ```bash
     make move-subkeys-to-card
     ```
+    > **Note:** This operation moves the keys to the card for daily use, replacing the local copies with stubs. However, the original secret subkey file (`subkeys_secret.asc`) is **not** deleted from your backup USB. This file serves as your crucial backup. Ensure your backup USB is stored in a physically secure, offline location.
 
-3.  **作業環境のクリーンアップ**
 
-    ```bash
-    make cleanup
-    ```
-
-### 2.2. ホストPCへの公開鍵設定
-
-- YubiKeyに紐付けられたGPGキーを、日常的に使用するPCに設定します。
-
-1.  **公開鍵とスタブのインポート**
-    - これにより、PCは「秘密鍵がYubiKeyにある」ことを認識します。
-
-    ```bash
-    make import-keys-to-host USB="your/usb/path"
-    ```
-
-2.  **作業環境のクリーンアップ**
+3.  **Cleanup Working Directory**
 
     ```bash
     make cleanup
     ```
 
-3.  **公開鍵のエクスポート**
-    - GitHubやKey Serverに登録するために、公開鍵をクリップボードにコピーします。
+### 2.2. Configure Host PC for Public Key
+
+- Configures your daily-use computer to use the GPG key associated with your YubiKey.
+
+1.  **Import Public Key and Stubs**
+    - This allows the PC to recognize that the secret keys are located on the YubiKey.
+
+    ```bash
+    make import-keys-to-host USB="/path/to/your/usb"
+    ```
+
+2.  **Cleanup Working Directory**
+
+    ```bash
+    make cleanup
+    ```
+
+3.  **Export Public Key**
+    - Copies the public key to your clipboard for uploading to GitHub or a key server.
 
     ```bash
     gpg --armor --export $GPG_FPR | xclip -sel clip
@@ -126,116 +128,116 @@ make setup-yubikey
 
 ---
 
-## 3. 🔄 定期メンテナンス (1年周期)
+## 3. Periodic Maintenance (Yearly Cycle)
 
-### 3.1. 有効期限の更新
+### 3.1. Renewing Expiration Dates
 
-1.  **GPGキーのインポート**
-
-    ```bash
-    make import-keys USB="your/usb/path"
-    ```
-
-2.  **有効期限の延長 (ガイド付き対話モード)**
-    - 対話的なGPGプロンプトが起動します。
-    - 画面に表示される指示に従い、各キー（主鍵と副鍵）の有効期限を個別に設定してください。
+1.  **Import GPG Keys**
 
     ```bash
-    make extend-key-limit USB="your/usb/path"
+    make import-keys USB="/path/to/your/usb"
     ```
 
-3.  **作業環境のクリーンアップ**
+2.  **Extend Expiration Date (Guided Interactive Mode)**
+    - An interactive GPG prompt will start.
+    - Follow the on-screen instructions to set the new expiration date for each key (primary and subkeys) individually.
+
+    ```bash
+    make extend-key-limit USB="/path/to/your/usb"
+    ```
+
+3.  **Cleanup Working Directory**
 
     ```bash
     make cleanup
     ```
 
-4.  **新しい公開鍵をホストに反映**
+4.  **Apply New Public Key to Host**
 
     ```bash
-    make import-keys-to-host USB="your/usb/path"
+    make import-keys-to-host USB="/path/to/your/usb"
     ```
 
-5.  **公開鍵の再配布**
-    - GitHubやKey Serverに、更新された新しい公開鍵を再度アップロードしてください。
+5.  **Redistribute Public Key**
+    - Re-upload the updated public key to services like GitHub or a key server.
 
 ---
 
-## 4. 🆘 究極の復旧 (QRコード)
+## 4. Ultimate Recovery (QR Code)
 
-- 物理的な紙のバックアップから主鍵を復元します。
+- Restores the primary key from a physical paper backup.
 
-1.  **QRコードの読み取り**
-    - `zbar`などのツールでQRコードを読み取り、base64エンコードされた文字列を取得します。
+1.  **Scan the QR Code**
+    - Use a tool like `zbar` to scan the QR code and get the base64-encoded string.
 
-2.  **キーの復元**
+2.  **Restore the Key**
 
     ```bash
-    make restore-from-qr USB="/run/media/ichinose/NEW_USB" QR_DATA="<読み取った文字列>"
+    make restore-from-qr USB="/path/to/your/usb" QR_DATA="<scanned_string>"
     ```
 
 ---
 
-## 5. 🚀 SSH (FIDO2) 管理
+## 5. SSH (FIDO2) Management
 
-### 5.1. SSHキーの生成と利用
+### 5.1. SSH Key Generation and Usage
 
-1.  **YubiKey内でSSHキーを生成**
-    - FIDO2/U2F (sk) タイプのSSHキーを生成し、バックアップUSBに秘密鍵ハンドルを保存します。
+1.  **Generate SSH Key on YubiKey**
+    - Generates a FIDO2/U2F (sk) type SSH key and saves the secret key handle to the backup USB.
 
     ```bash
-    make generate-ssh-key USB="your/usb/path"
+    make generate-ssh-key USB="/path/to/your/usb"
     ```
 
-2.  **新しいPCでSSHキーを利用**
-    - 別のPCでこのSSHキーを使いたい場合、バックアップUSBからキーハンドルを読み込みます。
+2.  **Use SSH Key on a New PC**
+    - To use this SSH key on another computer, load the key handle from the backup USB.
 
     ```bash
     ssh-keygen -K
     ```
 ---
 
-## 6. 🔄 YubiKeyの切り替え
+## 6. Switching YubiKeys
 
-PCに登録されているGPGキーの参照先を、新しいYubiKeyに切り替える際の手順です。
+This procedure outlines how to switch the GPG key reference on a PC to a new YubiKey.
 
-1.  **古いYubiKeyのスタブ（参照情報）を削除**
-    - `~/.gnupg/private-keys-v1.d/`にある`.key`ファイルは、秘密鍵そのものではなく「秘密鍵がどのYubiKeyにあるか」という情報を持っています。これを削除します。
-    > **Note:** 秘密鍵の実体はYubiKeyやバックアップUSBにあるため、この操作は安全です。
+1.  **Delete Old YubiKey Stubs (Reference Info)**
+    - The `.key` files in `~/.gnupg/private-keys-v1.d/` are not the secret keys themselves but rather pointers indicating which YubiKey holds the secret key. Delete these files.
+    > **Note:** This operation is safe because the actual secret keys are stored securely on your YubiKey and your backup USB.
 
     ```bash
     rm ~/.gnupg/private-keys-v1.d/*.key
     ```
 
-2.  **GPGデーモンの再起動と新しいYubiKeyの認識**
-    - 新しいYubiKeyをPCに接続した状態で、GPGのプロセスを再起動します。
+2.  **Restart GPG Daemon and Recognize New YubiKey**
+    - With the new YubiKey plugged in, restart the GPG processes.
 
     ```bash
     gpgconf --kill all
     ```
-    - `gpg --card-status` を実行して、新しいYubiKeyが正しく認識されていることを確認します。
+    - Run `gpg --card-status` to confirm that the new YubiKey is recognized correctly.
 
     ```bash
     gpg --card-status
     ```
-    これで、GPGは新しいYubiKeyを秘密鍵の場所として認識するようになります。
+    GPG will now recognize the new YubiKey as the location for the secret keys.
 
 ---
-## 付録: `gpg_backup` ディレクトリ構成
+## Appendix: `gpg_backup` Directory Structure
 
-バックアップUSBには `gpg_backup` ディレクトリが作成され、以下のファイルが格納されます。
+A `gpg_backup` directory will be created on your backup USB, containing the following files:
 
 ```
 gpg_backup/
-├── primary-secret-qr.png   # 主鍵の秘密鍵をPaperkeyでQRコード化したもの (究極の復旧用)
-├── primary_secret.asc      # 主鍵の秘密鍵 (ASCII Armor形式)
-├── public.asc              # GPG公開鍵 (主鍵 + 副鍵)
-├── revoke.asc              # 失効証明書
-└── subkeys_secret.asc      # 副鍵の秘密鍵 (ASCII Armor形式)
+├── primary-secret-qr.png
+├── primary_secret.asc
+├── public.asc
+├── revoke.asc
+└── subkeys_secret.asc
 ```
 
-- **`primary_secret.asc`**: 最も重要なファイル。主鍵の秘密鍵です。厳重に保管してください。
-- **`subkeys_secret.asc`**: 日常利用する副鍵の秘密鍵です。
-- **`public.asc`**: 他人に配布するあなたの公開鍵です。
-- **`revoke.asc`**: 鍵が漏洩した際に、鍵を無効化するための証明書です。
-- **`primary-secret-qr.png`**: `primary_secret.asc`をQRコードにしたものです。オフラインでの究極的なバックアップとして機能します。
+- **`primary_secret.asc`**: The most critical file. This is your primary secret key. Store it with extreme care.
+- **`subkeys_secret.asc`**: The secret keys for your daily-use subkeys.
+- **`public.asc`**: Your public key (primary + subkeys), which you can distribute to others.
+- **`revoke.asc`**: The revocation certificate, used to invalidate your key if it is ever compromised.
+- **`primary-secret-qr.png`**: A QR code version of `primary_secret.asc`. This serves as an ultimate offline backup.
