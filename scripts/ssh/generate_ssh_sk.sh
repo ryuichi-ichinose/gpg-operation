@@ -1,49 +1,51 @@
 #!/bin/bash
 set -e
 
-# 環境変数のチェック (アイデンティティはグローバルな状態として保持)
-: "${SSH_KEY_EMAIL:?エラー: 環境変数 SSH_KEY_EMAIL が設定されていない。}"
+# Check environment variables (identity is maintained as global state)
+: "${SSH_KEY_EMAIL:?Error: Environment variable SSH_KEY_EMAIL is not set.}"
 
-# 第一引数からターゲットUSBを取得
+# Get target USB from the first argument
 TARGET_USB="${1:-}"
 
 if [ -z "$TARGET_USB" ]; then
-    echo "エラー: バックアップ先のUSBマウントポイントを引数で指定しろ。"
-    echo "使い方: $0 /mnt/usb_master"
+    echo "Error: Please specify the backup USB mount point as an argument."
+    echo "Usage: $0 /path/to/usb"
     exit 1
 fi
 
 if [ ! -d "$TARGET_USB" ]; then
-    echo "エラー: 指定されたディレクトリ '$TARGET_USB' が見つからない。"
+    echo "Error: Directory '$TARGET_USB' not found."
     exit 1
 fi
 
 BACKUP_DIR="${TARGET_USB}/ssh_backup"
 mkdir -p "$BACKUP_DIR"
 
-echo "設定確認 (FIDO2 SSH):"
+echo "Configuration Check (FIDO2 SSH):"
 echo "  Email (Comment): $SSH_KEY_EMAIL"
-echo "  ターゲットUSB: $TARGET_USB"
-echo "  出力先: $BACKUP_DIR"
+echo "  Target USB: $TARGET_USB"
+echo "  Output Directory: $BACKUP_DIR"
 echo "----------------------------------------"
+read -p "Press Enter to begin key generation..."
 
-# residentオプションを付けることで、YubiKey自体に秘密鍵（と公開鍵のペア）を常駐させる
-# これにより、新しいPCに移動しても ssh-add -K で即座に鍵を復元できる
-echo "=> YubiKey内で ed25519-sk SSH鍵を生成する..."
-echo "注意: YubiKeyが点滅したらタッチしろ。PINの入力も求められる。"
+# The 'resident' option makes the key material reside on the YubiKey itself.
+# This allows the key to be loaded on a new PC instantly with ssh-keygen -K.
+echo "=> Generating ed25519-sk SSH key on the YubiKey..."
+echo "Note: Touch the YubiKey when it flashes. You will also be prompted for your PIN."
 
-# 既存のファイルがある場合に上書きするか聞かれるのを防ぐため、あえて上書き確認は残す
+# ssh-keygen will prompt for confirmation if the output file already exists.
 ssh-keygen -t ed25519-sk -O resident -C "$SSH_KEY_EMAIL" -f "$BACKUP_DIR/id_ed25519_sk"
 
-echo "=> 生成完了。"
+echo "=> Generation complete."
 
-# キーハンドルと公開鍵のパーミッション調整
+# Adjust permissions for the key handle and public key
 chmod 600 "$BACKUP_DIR/id_ed25519_sk"
 chmod 644 "$BACKUP_DIR/id_ed25519_sk.pub"
 
 echo "----------------------------------------"
-echo "以下の公開鍵をサーバーの ~/.ssh/authorized_keys に登録しろ："
+echo "Register the following public key in your server's ~/.ssh/authorized_keys file:"
 cat "$BACKUP_DIR/id_ed25519_sk.pub"
+echo "----------------------------------------"
 
 sync
-echo "=> すべての処理が完了した。"
+echo "=> All operations complete."

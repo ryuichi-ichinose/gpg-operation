@@ -1,58 +1,58 @@
 #!/bin/bash
 set -e
 
-: "${GPG_FPR:?エラー: GPG_FPR が未設定だ。}"
-: "${GPG_RAMDISK_DIR:?エラー: GPG_RAMDISK_DIR が未設定だ。}"
+: "${GPG_FPR:?Error: GPG_FPR is not set.}"
+: "${GPG_RAMDISK_DIR:?Error: GPG_RAMDISK_DIR is not set.}"
 
 TARGET_USB="${1:-}"
 if [ -z "$TARGET_USB" ] || [ ! -d "$TARGET_USB" ]; then
-    echo "エラー: マスター鍵が入っているUSBマウントポイントを指定しろ。"
+    echo "Error: Please specify the USB mount point containing the master key."
     exit 1
 fi
 
 export GNUPGHOME="$GPG_RAMDISK_DIR"
 BACKUP_DIR="${TARGET_USB}/gpg_backup"
 
-# 1. マスター鍵のインポート（期限更新には主鍵の秘密鍵が必須）
-echo "=> マスター鍵をインポート中..."
+# 1. Import master key (the primary secret key is required to extend expiration)
+echo "=> Importing master key..."
 gpg --import "$BACKUP_DIR/primary_secret.asc"
 gpg --import "$BACKUP_DIR/subkeys_secret.asc"
 
-# 2. ユーザーへのガイド
+# 2. Guide the user
 echo "------------------------------------------------------------------"
-echo "===> GPGキーの有効期限を更新します <==="
+echo "===> Updating GPG Key Expiration <==="
 echo "------------------------------------------------------------------"
-echo "これから対話的な GPG プロンプトを開始します。"
-echo "以下の手順に従って、各キーの有効期限を更新してください。"
+echo "Starting an interactive GPG prompt."
+echo "Follow the steps below to update the expiration for each key."
 echo ""
-echo "  1. gpg> プロンプトで 'list' と入力してキーの一覧を確認します。"
-echo "  2. 主鍵を更新するには、そのまま 'expire' と入力します。"
-echo "     - 有効期限 ('1y' など) を入力し、確認 ('y') します。"
-echo "  3. 副鍵を更新するには、'key <N>' でキーを選択します（例: 'key 1'）。"
-echo "     - アスタリスク (*) が選択したキーの横に移動したことを確認します。"
-echo "     - 'expire' と入力し、同様に有効期限を設定します。"
-echo "  4. **すべてのキー** に対してこのプロセスを繰り返します。"
-echo "  5. 最後に 'save' と入力して変更を保存し、プロンプトを終了します。"
+echo "  1. At the gpg> prompt, type 'list' to see your keys."
+echo "  2. To update the primary key, just type 'expire'."
+echo "     - Enter the new expiration ('1y', etc.) and confirm ('y')."
+echo "  3. To update a subkey, select it with 'key <N>' (e.g., 'key 1')."
+echo "     - Ensure the asterisk (*) moves next to the selected key."
+echo "     - Then type 'expire' and set the new expiration as before."
+echo "  4. Repeat this process for **all keys** (primary and subkeys)."
+echo "  5. Finally, type 'save' to apply the changes and exit the prompt."
 echo "------------------------------------------------------------------"
-echo "現在のキーの状態:"
+echo "Current key status:"
 gpg --list-keys "$GPG_FPR"
 echo "------------------------------------------------------------------"
-read -p "準備ができたら Enter を押して GPG プロンプトを開始します..."
+read -p "Press Enter when you are ready to start the GPG prompt..."
 
-# 3. 対話的セッションの開始
-# --tty オプションで現在のターミナルを明示的に指定する
+# 3. Start interactive session
+# Explicitly specify the current terminal with --tty
 gpg --tty `tty` --edit-key "$GPG_FPR"
 
 
-# 4. 更新された鍵をUSBに書き戻す
-echo "=> 更新された鍵を USB に上書きエクスポート中..."
+# 4. Write the updated keys back to the USB
+echo "=> Exporting updated keys back to the USB..."
 gpg --armor --export "$GPG_FPR" > "$BACKUP_DIR/public.asc"
 gpg --armor --export-secret-keys "$GPG_FPR" > "$BACKUP_DIR/primary_secret.asc"
 gpg --armor --export-secret-subkeys "$GPG_FPR" > "$BACKUP_DIR/subkeys_secret.asc"
 
 sync
 echo "------------------------------------------------"
-echo "✅ 更新完了。新しい有効期限を確認しろ:"
+echo "Update complete. Verify the new expiration dates:"
 gpg --list-keys "$GPG_FPR"
 echo "------------------------------------------------"
-echo "※ 注意: ホストPCにも 'make import-keys-to-host' で新しい公開鍵を反映させるのを忘れるな。"
+echo "※ NOTE: Don't forget to run 'make import-keys-to-host' to update your host PC as well."

@@ -1,38 +1,37 @@
 #!/bin/bash
 set -e
 
-# 環境変数のチェック
-: "${GPG_FPR:?エラー: GPG_FPR が未設定だ。}"
-: "${GPG_RAMDISK_DIR:?エラー: GPG_RAMDISK_DIR が未設定だ。}"
+# Check environment variables
+: "${GPG_FPR:?Error: GPG_FPR is not set.}"
+: "${GPG_RAMDISK_DIR:?Error: GPG_RAMDISK_DIR is not set.}"
 
-# 引数チェック
+# Argument check
 SOURCE_USB="${1:-}"
 QR_DATA="${2:-}"
 
 if [ -z "$SOURCE_USB" ] || [ ! -d "$SOURCE_USB" ]; then
-    echo "エラー: USBマウントポイントを第1引数で指定しろ。"
+    echo "Error: Please specify the USB mount point as the first argument."
     exit 1
 fi
 
 if [ -z "$QR_DATA" ]; then
-    echo -n "QRコードの文字列を入力してください: "
+    echo -n "Please enter the string from the QR code: "
     read -r QR_DATA
 fi
 
 BACKUP_DIR="${SOURCE_USB}/gpg_backup"
 if [ ! -d "$BACKUP_DIR" ]; then
-    echo "エラー: $BACKUP_DIR が見つからない。"
+    echo "Error: Backup directory $BACKUP_DIR not found."
     exit 1
 fi
 
-# GNUPGHOMEの設定
+# Set GNUPGHOME
 export GNUPGHOME="$GPG_RAMDISK_DIR"
 mkdir -p -m 700 "$GNUPGHOME"
 
-# TODO: 以下の設定はFedora系に特化している。他のディストリビューション
-# (Debian/Ubuntuなど)では `scdaemon-program` のパスが異なる可能性があるため、
-# 環境に応じた修正が必要。
-# === Fedora 最適化設定 ===
+# TODO: The following configuration is specific to Fedora-based systems.
+# On other distributions (like Debian/Ubuntu), the path to `scdaemon-program` may differ.
+# === Fedora Optimized Configuration ===
 cat <<EOF > "$GNUPGHOME/scdaemon.conf"
 disable-ccid
 pcsc-shared
@@ -41,38 +40,39 @@ cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
 scdaemon-program /usr/libexec/scdaemon
 EOF
 
-# === 復元プロセス ===
-echo "=> 公開鍵の変換とQRデータのデコード..."
+# === Restoration Process ===
+echo "=> Converting public key and decoding QR data..."
 gpg --dearmor < "$BACKUP_DIR/public.asc" > "$GNUPGHOME/public.gpg"
 echo "$QR_DATA" | base64 -d > "$GNUPGHOME/secret_fragment.bin"
 
-echo "=> paperkey による秘密鍵の再構築..."
+echo "=> Reconstructing secret key with paperkey..."
 paperkey --pubring "$GNUPGHOME/public.gpg" \
          --secrets "$GNUPGHOME/secret_fragment.bin" \
          --output "$GNUPGHOME/restored_private.gpg"
 
-echo "=> 復元された秘密鍵をインポート..."
+echo "=> Importing restored secret key..."
 gpg --import "$GNUPGHOME/restored_private.gpg"
 
-# TrustレベルをUltimateに
+# Set trust level to Ultimate
 echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$GPG_FPR" trust
 
-# === USBへの書き戻しセクション ===
-echo "=> 復元した主鍵をUSBへバックアップ ($BACKUP_DIR/primary_secret.asc)..."
+# === Write Back to USB Section ===
+echo "=> Backing up restored primary key to USB ($BACKUP_DIR/primary_secret.asc)..."
 
-# 既存ファイルがある場合はバックアップを作成
+# If an existing file is found, create a backup
 if [ -f "$BACKUP_DIR/primary_secret.asc" ]; then
     mv "$BACKUP_DIR/primary_secret.asc" "$BACKUP_DIR/primary_secret.asc.bak"
+    echo "   (Backed up existing primary_secret.asc to .bak)"
 fi
 
-# 秘密鍵をASCII Armor形式でエクスポート
+# Export the secret key in ASCII Armor format
 gpg --export-secret-keys --armor "$GPG_FPR" > "$BACKUP_DIR/primary_secret.asc"
 
-echo "=> USBへの書き戻しが完了した。"
+echo "=> Write-back to USB complete."
 
-# 一時バイナリの抹消
+# Shred temporary binary files
 shred -u "$GNUPGHOME/public.gpg" "$GNUPGHOME/secret_fragment.bin" "$GNUPGHOME/restored_private.gpg"
 
 echo "--------------------------------------------------"
-echo "=> 全工程完了。USB内の秘密鍵が更新されました。"
-gpg -K
+echo "=> All steps complete. The secret key on the USB has been restored and updated."
+gpg -K "$GPG_FPR"

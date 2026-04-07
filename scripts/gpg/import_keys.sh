@@ -1,33 +1,33 @@
 #!/bin/bash
 set -e
 
-: "${GPG_FPR:?エラー: GPG_FPR が未設定だ。}"
-: "${GPG_RAMDISK_DIR:?エラー: GPG_RAMDISK_DIR が未設定だ。}"
+: "${GPG_FPR:?Error: GPG_FPR is not set.}"
+: "${GPG_RAMDISK_DIR:?Error: GPG_RAMDISK_DIR is not set.}"
 
 SOURCE_USB="${1:-}"
 if [ -z "$SOURCE_USB" ] || [ ! -d "$SOURCE_USB" ]; then
-    echo "エラー: インポート元のUSBマウントポイントを引数で指定しろ。"
-    echo "使い方: $0 /mnt/usb_master"
+    echo "Error: Please specify the source USB mount point as an argument."
+    echo "Usage: $0 /path/to/usb"
     exit 1
 fi
 
 BACKUP_DIR="${SOURCE_USB}/gpg_backup"
 if [ ! -d "$BACKUP_DIR" ]; then
-    echo "エラー: $BACKUP_DIR が見つからない。"
+    echo "Error: Backup directory $BACKUP_DIR not found."
     exit 1
 fi
 
 export GNUPGHOME="$GPG_RAMDISK_DIR"
 
-# === 環境の構築 ===
-# ファイルを書き込む前に、必ずディレクトリを生成（存在しない場合のみ作成される）
+# === Setup Environment ===
+# Create the directory before writing files to it (safe if it already exists)
 mkdir -p -m 700 "$GNUPGHOME"
 
-# TODO: 以下の設定はFedora系に特化している。他のディストリビューション
-# (Debian/Ubuntuなど)では `scdaemon-program` のパスが異なる可能性があるため、
-# 環境に応じた修正が必要。
-# === scdaemonの競合回避設定 (pcscdを使用) ===
-# --- 1. Fedora 最適化設定 (GUI対応版) ---
+# TODO: The following configuration is specific to Fedora-based systems.
+# On other distributions (like Debian/Ubuntu), the path to `scdaemon-program` may differ.
+# Adjust the path according to your environment.
+# === scdaemon configuration to avoid conflicts (use pcscd) ===
+# --- Optimized settings for Fedora (GUI compatible) ---
 cat <<EOF > "$GNUPGHOME/scdaemon.conf"
 disable-ccid
 pcsc-shared
@@ -36,10 +36,10 @@ EOF
 cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
 scdaemon-program /usr/libexec/scdaemon
 EOF
-echo "=> Fedora 最適化設定を適用した。"
+echo "=> Applied Fedora-optimized GPG agent configuration."
 
-# === 鍵のインポート ===
-echo "=> 鍵のインポート..."
+# === Import Keys ===
+echo "=> Importing keys..."
 gpg --import "$BACKUP_DIR/public.asc"
 
 if [ -f "$BACKUP_DIR/primary_secret.asc" ]; then
@@ -50,8 +50,8 @@ if [ -f "$BACKUP_DIR/subkeys_secret.asc" ]; then
     gpg --import "$BACKUP_DIR/subkeys_secret.asc"
 fi
 
-# === 信用度の設定 ===
-echo "=> 鍵のTrustレベルをUltimateに設定..."
+# === Set Trust Level ===
+echo "=> Setting key trust level to Ultimate..."
 echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$GPG_FPR" trust
 
-echo "=> インポート完了。"
+echo "=> Import complete."

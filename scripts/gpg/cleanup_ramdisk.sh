@@ -1,9 +1,11 @@
 #!/bin/bash
-: "${GPG_RAMDISK_DIR:?エラー: GPG_RAMDISK_DIR が未設定だ。}"
+: "${GPG_RAMDISK_DIR:?Error: GPG_RAMDISK_DIR is not set.}"
 
 if [ -d "$GPG_RAMDISK_DIR" ]; then
+    # Use shred to securely wipe the files before removing them
+    find "$GPG_RAMDISK_DIR" -type f -exec shred -u -n 3 {} +
     rm -rf "$GPG_RAMDISK_DIR"
-    echo "=> RAMディスク ($GPG_RAMDISK_DIR) を完全に破棄した。"
+    echo "=> Temporary directory ($GPG_RAMDISK_DIR) has been securely wiped."
 else
-    echo "=> 破棄すべきRAMディスクは存在しない。"
+    echo "=> Temporary directory not found, no cleanup needed."
 fi
