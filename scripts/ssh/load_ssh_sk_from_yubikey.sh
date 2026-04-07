@@ -1,16 +1,18 @@
 #!/bin/bash
 set -e
 
-echo "=> YubiKeyから常駐SSH鍵(resident keys)を読み込んで ~/.ssh に保存する..."
-echo "=> このスクリプトは、新しいPCでYubiKeyを使いたい場合に実行する。"
-echo "注意: YubiKeyのPIN入力が求められる場合がある。"
+echo "=> Loading resident SSH keys from YubiKey and saving to ~/.ssh..."
+echo "=> Run this script when you want to use your YubiKey on a new computer."
+echo "Note: You may be prompted to enter your YubiKey PIN."
+echo "----------------------------------------------------------------"
+read -p "Press Enter to continue..."
 
-# -KオプションでFIDO2デバイスからresident keyを読み込む
-# これにより、id_ed25519_sk と id_ed25519_sk.pub が ~/.ssh/ に生成される
+# The -K option loads any resident keys from a FIDO2 device.
+# This will generate id_ed25519_sk and id_ed25519_sk.pub in your ~/.ssh directory.
 ssh-keygen -K
 
 echo
-echo "=> 完了。"
-echo "=> ~/.ssh に鍵のハンドルが作成された。"
-echo "以下のコマンドでSSHエージェントに鍵を追加して使えるようになる:"
+echo "=> Done."
+echo "=> Key handles have been created in ~/.ssh."
+echo "You can now add the key to your SSH agent with the following command:"
 echo "ssh-add ~/.ssh/id_ed25519_sk"
