@@ -1,5 +1,15 @@
 # GPG & YubiKey Operation Guide
 
+> **IMPORTANT DISCLAIMER**
+>
+> These scripts are powerful tools that manage sensitive cryptographic keys. Before proceeding, you must:
+>
+> 1.  **Understand the Process:** Have a solid understanding of GPG and YubiKey operations. Review these scripts carefully to understand what they do.
+> 2.  **Test Thoroughly:** Follow the procedures outlined in `device_test.md` to ensure your hardware and environment are compatible before managing real keys.
+> 3.  **Check OS Compatibility:** These scripts are currently designed for and tested on **Fedora Linux**. For other operating systems, you will need to modify the `scdaemon` path as noted in the `#TODO` comments within the scripts.
+>
+> Use these scripts at your own risk.
+
 This repository provides a set of scripts to automate the generation, management, and migration of GPG keys to a YubiKey.
 
 ## 0. Prerequisites
