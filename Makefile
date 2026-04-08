@@ -11,7 +11,7 @@ USB ?= /mnt/usb_master
 # --- Pre-flight Checks ---
 SHELL := /bin/bash
 # Stop if .env file is missing for most targets.
-ALLOWED_WITHOUT_ENV := help setup-permissions install-deps
+ALLOWED_WITHOUT_ENV := help setup-permissions
 IS_ENV_REQUIRED := $(if $(filter $(firstword $(MAKECMDGOALS)),$(ALLOWED_WITHOUT_ENV)),,true)
 
 ifeq ($(IS_ENV_REQUIRED),true)
@@ -106,8 +106,3 @@ extend-key-limit:
 restore-from-qr:
 	@echo "🖨️ Restoring primary key from QR code to \"$(USB)\"..."
 	@. .env && ./scripts/gpg/restore_and_backup.sh "$(USB)" "$(QR_DATA)"
-
-install-deps:
-	@echo "📦 Installing system dependencies for Fedora..."
-	@chmod +x ./install.sh
-	@./install.sh

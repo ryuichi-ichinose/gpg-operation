@@ -12,6 +12,61 @@
 
 This repository provides a set of scripts to automate the generation, management, and migration of GPG keys to a YubiKey.
 
+## -1. System Dependencies
+
+Before using these scripts, you need to install several dependencies. They are divided into "Required" (for script automation) and "Recommended" (for diagnostics and manual operations).
+
+### Required Packages
+These packages are essential for the scripts in this repository to run correctly. `yubikey-manager` is included here as it's vital for managing the YubiKey itself.
+
+**On Fedora / RHEL-based systems:**
+```bash
+sudo dnf install -y gnupg2 pcsc-lite yubikey-manager paperkey qrencode expect
+```
+
+**On Debian / Ubuntu-based systems:**
+```bash
+sudo apt-get update
+sudo apt-get install -y gnupg2 pcscd yubikey-manager paperkey qrencode expect
+```
+
+### Recommended Tools
+These tools are not directly called by the scripts but are highly recommended for diagnostics and manual parts of the workflow.
+
+**On Fedora / RHEL-based systems:**
+```bash
+sudo dnf install -y pcsc-tools zbar
+```
+
+**On Debian / Ubuntu-based systems:**
+```bash
+sudo apt-get install -y pcsc-tools zbar-tools
+```
+
+---
+**After installation**, you must enable and start the `pcscd` service, which allows communication with the YubiKey:
+```bash
+sudo systemctl enable --now pcscd.socket
+```
+
+<details>
+<summary><strong>List of Packages and Their Purpose</strong></summary>
+
+| Package           | Role & Rationale                                                                 |
+|-------------------|----------------------------------------------------------------------------------|
+| `gnupg2`          | **Required.** The core functionality of the GPG encryption suite.                |
+| `pcscd`           | **Required.** A low-level daemon for communicating with smart cards.             |
+| `yubikey-manager` | **Required.** The `ykman` utility for configuring and managing the YubiKey.      |
+| `paperkey`        | **Required.** Extracts and restores secret keys for paper backups.               |
+| `qrencode`        | **Required.** Converts text output into a QR code image.                         |
+| `expect`          | **Required.** A tool for automating `gpg`'s interactive prompts.                 |
+| `pcsc-tools`      | **Recommended.** Provides `pcsc_scan` for checking smart card reader status.     |
+| `zbar-tools`      | **Recommended.** Provides `zbarcam` for reading QR codes from a webcam.          |
+
+</details>
+
+---
+
 ## 0. Prerequisites
 
 ### 0.1. Environment Variables
