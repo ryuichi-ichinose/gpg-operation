@@ -6,16 +6,14 @@ set -e
 
 export GNUPGHOME="$GPG_RAMDISK_DIR"
 
-# TODO: The following configuration is specific to Fedora-based systems.
-# On other distributions (like Debian/Ubuntu), the path to `scdaemon-program` may differ.
-# Fedora Optimized Configuration
+# GPG Agent Configuration
 cat <<EOF > "$GNUPGHOME/scdaemon.conf"
 disable-ccid
 pcsc-shared
 EOF
 
 cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
-scdaemon-program /usr/libexec/scdaemon
+scdaemon-program "$GPG_SCDAEMON_PATH"
 EOF
 
 gpgconf --kill all

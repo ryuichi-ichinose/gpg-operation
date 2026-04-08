@@ -31,21 +31,27 @@ export SSH_KEY_EMAIL="your email address"
 
 # Temporary working directory (RAM disk is recommended)
 export GPG_RAMDISK_DIR="/dev/shm/gpg_workspace"
+
+# OS-Specific Path for GPG Smart Card Daemon
+# This path is critical for the scripts to function correctly.
+# See the "OS-Specific Notes" section below for details on how to find this path.
+export GPG_SCDAEMON_PATH="/usr/libexec/scdaemon" # Fedora default
 ```
 
-### 0.2. OS-Specific Notes
-The scripts in this tool have been developed and tested on **Fedora Linux**.
-Specifically, the GPG daemon (`scdaemon`) configuration depends on the Fedora path (`/usr/libexec/scdaemon`).
+### 0.2. OS-Specific Notes: Finding Your `scdaemon` Path
 
-If you are using another distribution such as Debian, Ubuntu, or Arch Linux, you will need to modify the following part of the scripts to match your environment.
+The `GPG_SCDAEMON_PATH` environment variable tells the scripts where to find the GPG smart card daemon (`scdaemon`), which is essential for communicating with the YubiKey. The location of this daemon varies across different Linux distributions.
+
+**Currently, these scripts have only been verified to work on Fedora Linux with the default path `/usr/libexec/scdaemon`.**
+
+To find the correct path on your system, the most reliable method is to use the `find` command:
 ```bash
-# e.g., in scripts/gpg/import_keys.sh
-
-# TODO: The following configuration is specific to Fedora...
-cat <<EOF > "$GNUPGHOME/gpg-agent.conf"
-scdaemon-program /usr/libexec/scdaemon # <- Modify this path
-EOF
+# Find the scdaemon path (might take a moment)
+find /usr -name scdaemon 2>/dev/null
 ```
+Once you find the path, update the `GPG_SCDAEMON_PATH` variable in your `.env` file accordingly.
+
+**We welcome contributions and feedback!** If you have successfully run these scripts on other distributions (e.g., Debian, Ubuntu, Arch Linux), please consider opening an issue or pull request to share your findings and help us improve compatibility.
 
 ---
 
