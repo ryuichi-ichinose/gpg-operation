@@ -6,7 +6,7 @@
 >
 > 1.  **Understand the Process:** Have a solid understanding of GPG and YubiKey operations. Review these scripts carefully to understand what they do.
 > 2.  **Test Thoroughly:** Follow the procedures outlined in `device_test.md` to ensure your hardware and environment are compatible before managing real keys.
-> 3.  **Set OS-Specific Path:** These scripts interact with the GPG daemon (`scdaemon`). You **must** configure the correct path for your operating system by setting the `GPG_SCDAEMON_PATH` environment variable as described in the "Prerequisites" section.
+> 3.  **Check OS Compatibility:** These scripts are currently designed for and tested on **Fedora Linux**. For other operating systems, you will need to modify the `scdaemon` path as noted in the `#TODO` comments within the scripts.
 >
 > Use these scripts at your own risk.
 
