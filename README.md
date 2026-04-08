@@ -196,17 +196,26 @@ make setup-yubikey
 
 ## 5. SSH (FIDO2) Management
 
-### 5.1. SSH Key Generation and Usage
+The secret key for a FIDO2/U2F-backed SSH key (e.g., `-t ed25519-sk`) is generated **inside the YubiKey's secure element** and **cannot be exported**. This design is what makes it highly secure.
+
+However, this also means it **cannot be backed up** in the traditional sense. If your YubiKey is lost or damaged, the secret key is gone forever.
+
+What you *can* save is the **key handle**. This is a public reference file that allows your computer to identify and communicate with the private key stored on the YubiKey. Saving this handle enables you to use the same YubiKey across multiple computers without re-registering it everywhere.
+
+### 5.1. Generating the Key and Saving the Handle
 
 1.  **Generate SSH Key on YubiKey**
-    - Generates a FIDO2/U2F (sk) type SSH key and saves the secret key handle to the backup USB.
+    - This command generates a new FIDO2/U2F (`sk`) type SSH key. The private key is created and stored securely inside the YubiKey.
+    - It saves the public key (`.pub`) and the corresponding key handle (a small file, **not** the private key) to your designated USB drive.
 
     ```bash
     make generate-ssh-key USB="/path/to/your/usb"
     ```
+    > **Reminder:** The `id_..._sk` file saved to your USB is **not a secret key backup**. It is a public reference needed to use the key on the YubiKey.
 
-2.  **Use SSH Key on a New PC**
-    - To use this SSH key on another computer, load the key handle from the backup USB.
+2.  **Using the SSH Key on a New Computer**
+    - To use your YubiKey's SSH key on a new machine, you must load the key handle you previously saved.
+    - The `ssh-keygen -K` command will find the key files on the USB drive and load them into your local SSH configuration, allowing you to use the key for authentication.
 
     ```bash
     ssh-keygen -K
