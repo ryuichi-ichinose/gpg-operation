@@ -27,7 +27,6 @@ echo "=> Verifying primary key exists in the working directory..."
 # Verify that the sec (Secret Key) record exists and is not a stub
 if ! gpg --list-secret-keys --with-colons "$GPG_FPR" | awk -F: '$1=="sec" {print $0}' | grep -q ""; then
     echo "Error: The primary secret key is not found in this environment, or the fingerprint is incorrect."
-    echo "Import the primary key from your master USB using 'import_keys.sh' first."
     exit 1
 fi
 
