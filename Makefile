@@ -56,53 +56,53 @@ help:
 
 # --- Setup ---
 setup-yubikey:
-	@echo "🔑 Setting up YubiKey attributes..."
+	@echo "Setting up YubiKey attributes..."
 	@. .env && ./scripts/gpg/setup_yubikey.sh
 
 setup-permissions:
 	@chmod +x scripts/gpg/*.sh scripts/ssh/*.sh
-	@echo "✅ Scripts are now executable."
+	@echo "Scripts are now executable."
 
 # --- GPG Key Lifecycle ---
 # Use '.' (dot) instead of 'source' for better portability.
 generate-primary-key:
-	@echo "🔐 Generating primary key on \"$(USB)\"..."
+	@echo "Generating primary key on \"$(USB)\"..."
 	@. .env && ./scripts/gpg/generate_primary_key.sh "$(USB)"
 
 import-keys:
-	@echo "🔐 Importing keys from \"$(USB)\"..."
+	@echo "Importing keys from \"$(USB)\"..."
 	@. .env && ./scripts/gpg/import_keys.sh "$(USB)"
 
 add-subkeys:
-	@echo "🔐 Adding subkeys and backing up to \"$(USB)\"..."
+	@echo "Adding subkeys and backing up to \"$(USB)\"..."
 	@. .env && ./scripts/gpg/add_subkeys.sh "$(USB)"
 
 move-subkeys-to-card:
-	@echo "🔐 Moving subkeys to YubiKey... Please follow the prompts."
+	@echo "Moving subkeys to YubiKey... Please follow the prompts."
 	@. .env && ./scripts/gpg/movetocard_subkeys.sh
 
 cleanup:
-	@echo "🧹 Cleaning up RAM disk..."
+	@echo "Cleaning up RAM disk..."
 	@. .env && ./scripts/gpg/cleanup_ramdisk.sh
 
 import-keys-to-host:
-	@echo "🔐 Importing keys to host(.gnupg) from \"$(USB)\"..."
+	@echo "Importing keys to host(.gnupg) from \"$(USB)\"..."
 	@. .env && ./scripts/gpg/import_public_key_to_host.sh "$(USB)"
 
 # --- SSH Key ---
 generate-ssh-key:
-	@echo "🔑 Generating SSH key on YubiKey, backup to \"$(USB)\"..."
+	@echo "Generating SSH key on YubiKey, backup to \"$(USB)\"..."
 	@. .env && ./scripts/ssh/generate_ssh_sk.sh "$(USB)"
 
 # --- Maintenance & Recovery ---
 backup-primary-key:
-	@echo "💾 Backing up primary key to \"$(USB)\"..."
+	@echo "Backing up primary key to \"$(USB)\"..."
 	@. .env && ./scripts/gpg/backup_primary_key.sh "$(USB)"
 
 extend-key-limit:
-	@echo "⏳ Extend GPG keys for 1 year..."
+	@echo "Extend GPG keys for 1 year..."
 	@./scripts/gpg/extend_key_limit.sh "$(USB)"
 
 restore-from-qr:
-	@echo "🖨️ Restoring primary key from QR code to \"$(USB)\"..."
+	@echo "Restoring primary key from QR code to \"$(USB)\"..."
 	@. .env && ./scripts/gpg/restore_and_backup.sh "$(USB)" "$(QR_DATA)"
