@@ -7,10 +7,6 @@ This document outlines the end-to-end test procedure for generating GPG keys and
 ### 1.1. Install Dependencies
 Ensure all required tools (like `gpg`, `qrencode`, `ykman`, etc.) are installed.
 
-```bash
-make install-deps
-```
-
 ### 1.2. Set Up Environment
 Create a `.env` file in the project root with temporary, test-only values.
 
