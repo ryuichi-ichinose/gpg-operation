@@ -33,7 +33,6 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo '  make generate-primary-key USB="/run/media/user/My USB"'
-	@echo '  make sync-backup SRC_USB="/mnt/master" DST_USB="/mnt/replica"'
 	@echo '  make restore-from-qr USB="/mnt/new_usb" QR_DATA="Base64String..."'
 	@echo ""
 	@echo "Targets:"
