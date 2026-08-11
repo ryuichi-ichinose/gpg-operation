@@ -24,7 +24,7 @@ ifeq ($(IS_ENV_REQUIRED),true)
 endif
 
 
-.PHONY: all help setup-yubikey setup-permissions generate-primary-key import-keys add-subkeys move-subkeys-to-card cleanup generate-ssh-key backup-primary-key sync-backup restore-from-qr
+.PHONY: all help setup-yubikey setup-permissions generate-primary-key import-keys add-subkeys move-subkeys-to-card cleanup generate-ssh-key backup-primary-key restore-from-qr
 
 all: help
 
@@ -104,4 +104,4 @@ extend-key-limit:
 
 restore-from-qr:
 	@echo "Restoring primary key from QR code to \"$(USB)\"..."
-	@. .env && ./scripts/gpg/restore_and_backup.sh "$(USB)" "$(QR_DATA)"
+	@. .env && ./scripts/gpg/restore_from_qr.sh "$(USB)" "$(QR_DATA)"
