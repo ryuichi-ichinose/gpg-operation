@@ -51,15 +51,4 @@ fi
 echo "=> Setting key trust level to Ultimate..."
 echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$GPG_FPR" trust
 
-echo "=> Import complete."_DIR/primary_secret.asc"
-fi
-
-if [ -f "$BACKUP_DIR/subkeys_secret.asc" ]; then
-    gpg --import "$BACKUP_DIR/subkeys_secret.asc"
-fi
-
-# === Set Trust Level ===
-echo "=> Setting key trust level to Ultimate..."
-echo -e "5\ny\n" | gpg --command-fd 0 --edit-key "$GPG_FPR" trust
-
 echo "=> Import complete."
