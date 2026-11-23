@@ -6,7 +6,7 @@
 >
 > 1.  **Understand the Process:** Have a solid understanding of GPG and YubiKey operations. Review these scripts carefully to understand what they do.
 > 2.  **Test Thoroughly:** Follow the procedures outlined in `device_test.md` to ensure your hardware and environment are compatible before managing real keys.
-> 3.  **Check OS Compatibility:** These scripts are currently designed for and tested on **Fedora Linux**. For other operating systems, you will need to modify the `scdaemon` path as noted in the `#TODO` comments within the scripts.
+> 3.  **Check OS Compatibility:** These scripts are currently designed for and tested on **Fedora Linux**. For other operating systems, you will need to set `GPG_SCDAEMON_PATH` in your `.env` (see section 0.2).
 >
 > Use these scripts at your own risk.
 
@@ -281,15 +281,7 @@ What you *can* save is the **key handle**. This is a public reference file that 
 
 This procedure outlines how to switch the GPG key reference on a PC to a new YubiKey.
 
-1.  **Delete Old YubiKey Stubs (Reference Info)**
-    - The `.key` files in `~/.gnupg/private-keys-v1.d/` are not the secret keys themselves but rather pointers indicating which YubiKey holds the secret key. Delete these files.
-    > **Note:** This operation is safe because the actual secret keys are stored securely on your YubiKey and your backup USB.
-
-    ```bash
-    rm ~/.gnupg/private-keys-v1.d/*.key
-    ```
-
-2.  **Restart GPG Daemon and Recognize New YubiKey**
+1.  **Restart GPG Daemon and Recognize New YubiKey**
     - With the new YubiKey plugged in, restart the GPG processes.
 
     ```bash
@@ -299,6 +291,13 @@ This procedure outlines how to switch the GPG key reference on a PC to a new Yub
 
     ```bash
     gpg --card-status
+    ```
+
+2.  **Re-point Key Stubs to the New YubiKey**
+    - The stubs in `~/.gnupg/private-keys-v1.d/` still reference the old YubiKey's serial number. This command rewrites them to point to the card currently plugged in. No keys are deleted.
+
+    ```bash
+    gpg-connect-agent "scd serialno" "learn --force" /bye
     ```
     GPG will now recognize the new YubiKey as the location for the secret keys.
 
