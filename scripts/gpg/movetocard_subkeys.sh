@@ -3,6 +3,11 @@ set -e
 
 : "${GPG_FPR:?Error: GPG_FPR is not set.}"
 : "${GPG_RAMDISK_DIR:?Error: GPG_RAMDISK_DIR is not set.}"
+: "${GPG_SCDAEMON_PATH:?Error: GPG_SCDAEMON_PATH is not set.}"
+if [ ! -x "$GPG_SCDAEMON_PATH" ]; then
+    echo "Error: GPG_SCDAEMON_PATH '$GPG_SCDAEMON_PATH' is not an executable file. Check your .env."
+    exit 1
+fi
 
 export GNUPGHOME="$GPG_RAMDISK_DIR"
 
