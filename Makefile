@@ -11,14 +11,11 @@ USB ?= /mnt/usb_master
 # --- Pre-flight Checks ---
 SHELL := /bin/bash
 # Stop if .env file is missing for most targets.
-ALLOWED_WITHOUT_ENV := help setup-permissions
-IS_ENV_REQUIRED := $(if $(filter $(firstword $(MAKECMDGOALS)),$(ALLOWED_WITHOUT_ENV)),,true)
-
-ifeq ($(IS_ENV_REQUIRED),true)
-    ifneq ($(wildcard .env),)
-        -include .env
-        export
-    else
+# .env is NOT included into make: make keeps shell quotes as part of the value
+# (export FOO="bar" -> FOO is '"bar"'). Each recipe sources it with '. .env'.
+ALLOWED_WITHOUT_ENV := all help setup-permissions
+ifneq ($(filter-out $(ALLOWED_WITHOUT_ENV),$(or $(MAKECMDGOALS),all)),)
+    ifeq ($(wildcard .env),)
         $(error .env file not found. Please create it first. See README.md)
     endif
 endif
@@ -100,7 +97,7 @@ backup-primary-key:
 
 extend-key-limit:
 	@echo "Extend GPG keys for 1 year..."
-	@./scripts/gpg/extend_key_limit.sh "$(USB)"
+	@. .env && ./scripts/gpg/extend_key_limit.sh "$(USB)"
 
 restore-from-qr:
 	@echo "Restoring primary key from QR code to \"$(USB)\"..."
