@@ -24,9 +24,13 @@ BACKUP_DIR="${TARGET_USB}/gpg_backup"
 mkdir -p "$BACKUP_DIR"
 
 echo "=> Verifying primary key exists in the working directory..."
-# Verify that the sec (Secret Key) record exists and is not a stub
-if ! gpg --list-secret-keys --with-colons "$GPG_FPR" | awk -F: '$1=="sec" {print $0}' | grep -q ""; then
-    echo "Error: The primary secret key is not found in this environment, or the fingerprint is incorrect."
+# Verify that the sec (Secret Key) record exists and the secret material is really here.
+# Field 15 of the sec record: empty or '+' = secret key available,
+# '#' = stub (secret part missing), anything else = card serial number (key lives on a token).
+if ! gpg --list-secret-keys --with-colons "$GPG_FPR" 2>/dev/null \
+        | awk -F: '$1=="sec" && ($15=="" || $15=="+") {found=1} END {exit !found}'; then
+    echo "Error: The primary secret key is not available in this environment."
+    echo "       It is missing, is only a stub (sec#), lives on a card (sec>), or the fingerprint is wrong."
     exit 1
 fi
 
